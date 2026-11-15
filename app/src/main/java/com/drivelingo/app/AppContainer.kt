@@ -27,6 +27,7 @@ import com.drivelingo.core.vehicle.car.CarReadings
 import com.drivelingo.core.vehicle.car.CarUxRestrictionsReader
 import com.drivelingo.core.vehicle.car.PleosVehicleReader
 import com.drivelingo.core.vehicle.mock.MockDrivingSignalSource
+import com.drivelingo.feature.lesson.LessonController
 import com.drivelingo.feature.lesson.coach.EnglishCoach
 import com.drivelingo.feature.lesson.coach.MockEnglishCoach
 import kotlinx.coroutines.CoroutineScope
@@ -98,6 +99,19 @@ class AppContainer(context: Context) {
 
     val curriculum: CurriculumRepository = MockCurriculumRepository()
     val progress = ProgressRepository(SharedPrefsStore(context))
+
+    /** 앱 전체에서 수업 하나를 소유한다. 수업 화면과 미디어 세션(운전대 버튼)이 같이 쓴다. */
+    val lessons = LessonController(
+        drivingMonitor = drivingMonitor,
+        voiceOutput = voiceOutput,
+        voiceInput = voiceInput,
+        coach = coach,
+        audioFocus = audioFocus,
+        curriculum = curriculum,
+        progress = progress,
+        appScope = appScope,
+        clock = clock,
+    )
 
     val usesMockVehicle: Boolean get() = BuildConfig.VEHICLE_SOURCE != "car"
 
