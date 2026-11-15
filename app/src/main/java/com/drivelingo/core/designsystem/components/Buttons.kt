@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.drivelingo.core.designsystem.MalchaColors
 
-/** 시안의 큰 민트 "▶ 시작" 버튼. 주행 중에도 누를 수 있도록 터치 영역을 크게 둔다. */
+/** 시안의 큰 민트 "시작" 버튼. 주행 중에도 누를 수 있도록 터치 영역을 크게 둔다. */
 @Composable
 fun PrimaryButton(
     text: String,

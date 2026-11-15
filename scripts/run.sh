@@ -16,11 +16,11 @@ if ! "$ADB" devices | grep -qE "^emulator-|\s(device|offline)$" && ! pgrep -f "e
     echo "AVD 가 없습니다. Android Studio > Device Manager 에서 만들어 주세요." >&2
     exit 1
   fi
-  echo "▶ 에뮬레이터 시작: $AVD"
+  echo "에뮬레이터 시작: $AVD"
   nohup "$EMULATOR" -avd "$AVD" >/dev/null 2>&1 &
 fi
 
-echo "▶ 부팅 대기 중... (최대 5분)"
+echo "부팅 대기 중... (최대 5분)"
 for _ in $(seq 1 150); do
   [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
   sleep 2
@@ -30,9 +30,9 @@ if [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1
   exit 1
 fi
 
-echo "▶ 빌드·설치"
+echo "빌드·설치"
 ./gradlew installDebug "$@" --console=plain -q
 
-echo "▶ 실행"
+echo "실행"
 "$ADB" shell am start -n com.drivelingo/.app.MainActivity >/dev/null
-echo "✓ 말차 실행됨"
+echo "말차 실행됨"

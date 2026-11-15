@@ -87,7 +87,7 @@ object LessonUiMapper {
             badge = badge,
             progress = if (s.phase == LessonPhase.FINISHED) 1f else s.progress,
             isPaused = s.phase == LessonPhase.PAUSED,
-            // 안전 사유(전화·방향지시등 등)로 멈춘 동안에는 사용자가 재개할 수 없다. 사용자 일시정지·포커스 상실만 ▶ 로 재개.
+            // 안전 사유(전화·방향지시등 등)로 멈춘 동안에는 사용자가 재개할 수 없다. 사용자 일시정지·포커스 상실만 재생 버튼으로 재개.
             canTogglePause = activePhase ||
                 (s.phase == LessonPhase.PAUSED && (s.userPaused || Interruption.AUDIO_FOCUS_LOST in s.signalInterruptions)),
             canRepeat = s.phase == LessonPhase.PROMPT || s.phase == LessonPhase.ANSWER || s.phase == LessonPhase.FEEDBACK,
@@ -100,7 +100,7 @@ object LessonUiMapper {
 
     private fun pausedCaption(primary: Interruption?): String = when {
         primary == null -> "곧 이어서 할게요 · 진행 상황은 그대로예요"
-        primary.needsUserAction -> "${primary.label} · ▶ 버튼을 누르면 이어서 해요"
+        primary.needsUserAction -> "${primary.label} · 재생 버튼을 누르면 이어서 해요"
         else -> "${primary.label} · 진행 상황은 그대로예요"
     }
 

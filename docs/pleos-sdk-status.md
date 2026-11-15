@@ -20,20 +20,20 @@
 
 | 앱이 쓰는 신호 | 실제 출처 (문서 근거) | 필요 권한 | 현재 구현 |
 |---|---|---|---|
-| 주행 규제 | AAOS `CarUxRestrictionsManager.registerListener` / `onUxRestrictionsChanged` (Pleos 주행 규제 개발 가이드) | 없음 | ✅ **실연동** `core/vehicle/car/CarUxRestrictionsReader.kt` (`-Pdrivelingo.vehicleSource=car`) |
-| 속도·기어 | AAOS `CarPropertyManager` + `VehiclePropertyIds` (Pleos "표준 데이터는 AAOS Car API" 정책) | `android.car.permission.CAR_SPEED`, `CAR_POWERTRAIN` | ⚠️ Mock |
-| 방향지시등 | Vehicle SDK `TurnSignal`: `registerTurnSignalState` / `getCurrentTurnSignalState` / `checkTurnSignalStateCapabilities` | `pleos.car.permission.CAR_LIGHTS` | ⚠️ Mock |
-| 브레이크 페달 | Vehicle SDK `Brake`: `registerBrakePedalStatus` / `getCurrentBrakePedalStatus` | `pleos.car.permission.CAR_DRIVE` | ⚠️ Mock |
-| 급제동 | **전용 API를 문서에서 찾지 못함.** 속도 변화율(감속도)로 추정해야 합니다 | (속도 권한) | ⚠️ Mock (펄스 이벤트) |
-| 차량 경고 | Vehicle SDK `Safety`: `registerTelltales` / `getTelltalesInfo` 등 | `pleos.car.permission.CAR_SAFETY` | ⚠️ Mock. 어떤 경고등을 "중단 사유"로 볼지는 검토가 필요합니다 |
-| 내비 음성 안내 | **전용 "음성 안내 시작/끝" 이벤트를 문서에서 찾지 못함.** NaviHelper에는 `onTBTInfo`, `onRouteStateInfo` 등만 있습니다. 실제로는 내비가 `NAVIGATION` 컨텍스트로 포커스를 요청할 때 오는 `AUDIOFOCUS_LOSS_TRANSIENT(_CAN_DUCK)`로 감지합니다 | 없음 | ⚠️ Mock |
-| 전화 | **Pleos 전용 API를 문서에서 찾지 못함.** `CALL` 컨텍스트가 포커스를 가져갈 때 오는 오디오 포커스 상실로 감지합니다 | 없음 | ⚠️ Mock |
-| 오디오 포커스 | Android `AudioManager.requestAudioFocus(AudioFocusRequest)` + Pleos Interaction Matrix | 없음 | ⚠️ Mock (`AudioFocusRequester` 인터페이스만 있음) |
-| 도착까지 남은 시간·다음 회전 거리 | NaviHelper `onRouteStateInfo`, `onTBTInfo` (정확한 필드는 API 레퍼런스에서 확인 필요) | NaviHelper 권한 | ⚠️ Mock |
-| 네트워크 | Android `ConnectivityManager` | `ACCESS_NETWORK_STATE` | ⚠️ Mock (콘솔 토글) |
-| STT | SpeechToText SDK: `initialize()` → `addListener(ResultListener)` → `request()` / `stop()` | `pleos.car.permission.STT_SERVICE` | ⚠️ `SimulatedVoiceInput` |
-| TTS | TextToSpeech SDK: `speak()` + `EventListener.onDone()` / `onStop()` / `onError()` | TTS 권한 | ⚠️ `SimulatedVoiceOutput` (소리 없음) |
-| LLM 코치 | 차량 앱 → **자체 백엔드** → LLM API. 키는 앱에 넣지 않습니다 | – | ⚠️ `MockEnglishCoach` (규칙 기반). 백엔드는 이번 범위가 아닙니다 |
+| 주행 규제 | AAOS `CarUxRestrictionsManager.registerListener` / `onUxRestrictionsChanged` (Pleos 주행 규제 개발 가이드) | 없음 | **실연동** `core/vehicle/car/CarUxRestrictionsReader.kt` (`-Pdrivelingo.vehicleSource=car`) |
+| 속도·기어 | AAOS `CarPropertyManager` + `VehiclePropertyIds` (Pleos "표준 데이터는 AAOS Car API" 정책) | `android.car.permission.CAR_SPEED`, `CAR_POWERTRAIN` | Mock |
+| 방향지시등 | Vehicle SDK `TurnSignal`: `registerTurnSignalState` / `getCurrentTurnSignalState` / `checkTurnSignalStateCapabilities` | `pleos.car.permission.CAR_LIGHTS` | Mock |
+| 브레이크 페달 | Vehicle SDK `Brake`: `registerBrakePedalStatus` / `getCurrentBrakePedalStatus` | `pleos.car.permission.CAR_DRIVE` | Mock |
+| 급제동 | **전용 API를 문서에서 찾지 못함.** 속도 변화율(감속도)로 추정해야 합니다 | (속도 권한) | Mock (펄스 이벤트) |
+| 차량 경고 | Vehicle SDK `Safety`: `registerTelltales` / `getTelltalesInfo` 등 | `pleos.car.permission.CAR_SAFETY` | Mock. 어떤 경고등을 "중단 사유"로 볼지는 검토가 필요합니다 |
+| 내비 음성 안내 | **전용 "음성 안내 시작/끝" 이벤트를 문서에서 찾지 못함.** NaviHelper에는 `onTBTInfo`, `onRouteStateInfo` 등만 있습니다. 실제로는 내비가 `NAVIGATION` 컨텍스트로 포커스를 요청할 때 오는 `AUDIOFOCUS_LOSS_TRANSIENT(_CAN_DUCK)`로 감지합니다 | 없음 | Mock |
+| 전화 | **Pleos 전용 API를 문서에서 찾지 못함.** `CALL` 컨텍스트가 포커스를 가져갈 때 오는 오디오 포커스 상실로 감지합니다 | 없음 | Mock |
+| 오디오 포커스 | Android `AudioManager.requestAudioFocus(AudioFocusRequest)` + Pleos Interaction Matrix | 없음 | Mock (`AudioFocusRequester` 인터페이스만 있음) |
+| 도착까지 남은 시간·다음 회전 거리 | NaviHelper `onRouteStateInfo`, `onTBTInfo` (정확한 필드는 API 레퍼런스에서 확인 필요) | NaviHelper 권한 | Mock |
+| 네트워크 | Android `ConnectivityManager` | `ACCESS_NETWORK_STATE` | Mock (콘솔 토글) |
+| STT | SpeechToText SDK: `initialize()` → `addListener(ResultListener)` → `request()` / `stop()` | `pleos.car.permission.STT_SERVICE` | `SimulatedVoiceInput` |
+| TTS | TextToSpeech SDK: `speak()` + `EventListener.onDone()` / `onStop()` / `onError()` | TTS 권한 | `SimulatedVoiceOutput` (소리 없음) |
+| LLM 코치 | 차량 앱 → **자체 백엔드** → LLM API. 키는 앱에 넣지 않습니다 | – | `MockEnglishCoach` (규칙 기반). 백엔드는 이번 범위가 아닙니다 |
 
 참고: STT/TTS의 `HYBRID` 모드는 서버를 먼저 쓰고, 네트워크가 끊기면 On-device로 자동 전환합니다. 서버 모드를 쓰려면 My Project의 Client ID/Secret으로 `registerApp()`을 해야 합니다. 이 Secret은 앱에 하드코딩하지 말고 백엔드에서 내려받는 방식을 검토해야 합니다.
 
