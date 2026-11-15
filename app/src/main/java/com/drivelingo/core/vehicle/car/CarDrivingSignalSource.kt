@@ -1,6 +1,9 @@
 package com.drivelingo.core.vehicle.car
 
+import com.drivelingo.core.driving.DepartureTracker
 import com.drivelingo.core.driving.NewWarningGate
+import com.drivelingo.core.driving.SuddenBrakingDetector
+import com.drivelingo.core.vehicle.Gear
 import com.drivelingo.core.vehicle.DrivingSignalSource
 import com.drivelingo.core.vehicle.DrivingSignals
 import com.drivelingo.core.vehicle.TurnSignal
@@ -21,11 +24,15 @@ data class CarReadings(
     val ux: UxRestrictions? = null,
     /** Pleos Vehicle SDK. */
     val vehicle: PleosVehicleState = PleosVehicleState(),
+    /** AAOS CarPropertyManager. */
+    val motion: CarMotion = CarMotion(),
 )
 
 /** 실제 값에서 만든 순간 이벤트. */
 data class DerivedEvents(
     val vehicleWarning: Boolean = false,
+    val suddenBraking: Boolean = false,
+    val minutesSinceDeparture: Int? = null,
 )
 
 /**
@@ -35,16 +42,21 @@ data class DerivedEvents(
  *   (Mock 으로 채우면 연동 실패가 가려진다.)
  *   - 주행 규제를 모름 → null → 안전 제한 모드
  *   - 방향지시등을 모름 → OFF. 모른다고 수업을 계속 멈출 수는 없으므로, 이 차량은 지시등 중단 없이 동작한다.
- * - 실제 소스가 아직 없는 신호(시동, 네트워크, 속도·기어, 오디오, 내비 경로)는 Mock 값을 쓴다.
+ *   - 속도를 모름 → null → 주행 규제 중이면 안전 제한 모드 / 기어를 모름 → UNKNOWN
+ * - 실제 소스가 아직 없는 신호(시동, 네트워크, 오디오, 내비 경로)는 Mock 값을 쓴다.
  */
 object CarSignalMerger {
     /** 차량 시뮬레이터 화면에 "실제 값" 으로 표시하는 신호 이름. */
-    val REAL_SIGNALS = listOf("CarUx", "방향지시등", "경고등")
+    val REAL_SIGNALS = listOf("CarUx", "방향지시등", "경고등", "급제동", "속도", "기어")
 
     fun merge(mock: DrivingSignals, real: CarReadings, events: DerivedEvents): DrivingSignals = mock.copy(
         uxRestrictions = real.ux,
         turnSignal = real.vehicle.turnSignal ?: TurnSignal.OFF,
         vehicleWarningActive = events.vehicleWarning,
+        suddenBraking = events.suddenBraking,
+        speedKmh = real.motion.speedKmh,
+        gear = real.motion.gear ?: Gear.UNKNOWN,
+        minutesSinceDeparture = events.minutesSinceDeparture,
     )
 }
 
@@ -62,6 +74,9 @@ class CarDrivingSignalSource(
 ) : DrivingSignalSource {
 
     private val warningGate = NewWarningGate()
+    private val braking = SuddenBrakingDetector()
+    private val departure = DepartureTracker()
+    private var lastSpeedAtMs: Long? = null
     private var latest = CarReadings()
 
     private val _signals = MutableStateFlow(compute())
@@ -81,7 +96,15 @@ class CarDrivingSignalSource(
 
     @Synchronized
     private fun onReadings(readings: CarReadings) {
-        warningGate.update(readings.vehicle.warningTelltales, clock())
+        val now = clock()
+        warningGate.update(readings.vehicle.warningTelltales, now)
+        departure.onGear(readings.motion.gear, now)
+        val speed = readings.motion.speedKmh
+        val speedAt = readings.motion.speedAtMs
+        if (speed != null && speedAt != null && speedAt != lastSpeedAtMs) {
+            braking.onSpeed(speedAt, speed, readings.vehicle.brakePedalPressed)
+            lastSpeedAtMs = speedAt
+        }
         latest = readings
         recompute()
     }
@@ -96,7 +119,11 @@ class CarDrivingSignalSource(
         return CarSignalMerger.merge(
             mock = fallback.signals.value,
             real = latest,
-            events = DerivedEvents(vehicleWarning = warningGate.isActive(now)),
+            events = DerivedEvents(
+                vehicleWarning = warningGate.isActive(now),
+                suddenBraking = braking.isActive(now),
+                minutesSinceDeparture = departure.minutesSinceDeparture(now),
+            ),
         )
     }
 

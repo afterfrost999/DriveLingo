@@ -16,6 +16,10 @@
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
     <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
 
+    <!-- AAOS CarPropertyManager. CAR_SPEED 는 런타임 권한이라 car 모드에서 MainActivity 가 요청한다. -->
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+
     <!--
         android:appCategory="audio": Pleos 문서 기준 Music/Audio 로 선언. 단, Music/Audio 심사는 MediaBrowserService·
         MediaSession·스티어링 휠 키 지원을 요구하며 이 프로토타입에는 없다. 카테고리 적합성은 docs/policy-review.md 참고.

@@ -16,7 +16,9 @@ import com.drivelingo.core.speech.VoiceOutput
 import com.drivelingo.core.speech.VoiceSimulation
 import com.drivelingo.core.vehicle.AudioFocusRequester
 import com.drivelingo.core.vehicle.DrivingSignalSource
+import com.drivelingo.core.vehicle.car.CarConnection
 import com.drivelingo.core.vehicle.car.CarDrivingSignalSource
+import com.drivelingo.core.vehicle.car.CarPropertyReader
 import com.drivelingo.core.vehicle.car.CarReadings
 import com.drivelingo.core.vehicle.car.CarUxRestrictionsReader
 import com.drivelingo.core.vehicle.car.PleosVehicleReader
@@ -27,6 +29,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -42,12 +46,27 @@ class AppContainer(context: Context) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     val clock: () -> Long = { SystemClock.elapsedRealtime() }
 
+    /** 런타임 권한(차량 속도 등)을 새로 받으면 값을 올려 차량 리더가 다시 구독하게 한다. */
+    private val carPermissionChanges = MutableStateFlow(0)
+
+    fun onCarPermissionsChanged() = carPermissionChanges.update { it + 1 }
+
     /** 테스트 콘솔이 조작하는 Mock 신호. car 모드에서도 실제 소스가 없는 신호는 여기서 온다. */
     val mockVehicle = MockDrivingSignalSource(appScope)
 
     val signalSource: DrivingSignalSource = when (BuildConfig.VEHICLE_SOURCE) {
         "car" -> CarDrivingSignalSource(carReadings(context), mockVehicle, appScope, clock)
         else -> mockVehicle
+    }
+
+    /** car 모드에서 쓰는 실제 차량 값. 소스마다 따로 연결하고 하나로 합친다. */
+    private fun carReadings(context: Context): Flow<CarReadings> {
+        val car = CarConnection(context, appScope)
+        return combine(
+            CarUxRestrictionsReader(car).restrictions,
+            PleosVehicleReader(context).state,
+            CarPropertyReader(context, car, carPermissionChanges).motion,
+        ) { ux, vehicle, motion -> CarReadings(ux = ux, vehicle = vehicle, motion = motion) }
     }
 
     val drivingMonitor = DrivingMonitor(signalSource, appScope, clock)
@@ -75,11 +94,5 @@ class AppContainer(context: Context) {
         }
     }
 }
-
-/** car 모드에서 쓰는 실제 차량 값. 소스마다 따로 연결하고 하나로 합친다. */
-private fun carReadings(context: Context): Flow<CarReadings> = combine(
-    CarUxRestrictionsReader(context).restrictions,
-    PleosVehicleReader(context).state,
-) { ux, vehicle -> CarReadings(ux = ux, vehicle = vehicle) }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> { error("AppContainer not provided") }

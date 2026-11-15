@@ -1,6 +1,7 @@
 package com.drivelingo.core.vehicle.car
 
 import com.drivelingo.core.vehicle.DrivingSignals
+import com.drivelingo.core.vehicle.Gear
 import com.drivelingo.core.vehicle.TurnSignal
 import com.drivelingo.core.vehicle.UxRestrictions
 import com.drivelingo.core.vehicle.mock.DrivingPreset
@@ -23,12 +24,19 @@ class CarSignalMergerTest {
     fun `real sources win over mock`() {
         val merged = CarSignalMerger.merge(
             mock,
-            CarReadings(ux = UxRestrictions.UNRESTRICTED, vehicle = PleosVehicleState(turnSignal = TurnSignal.LEFT)),
-            DerivedEvents(vehicleWarning = false),
+            CarReadings(
+                ux = UxRestrictions.UNRESTRICTED,
+                vehicle = PleosVehicleState(turnSignal = TurnSignal.LEFT),
+                motion = CarMotion(speedKmh = 0f, gear = Gear.PARK),
+            ),
+            DerivedEvents(vehicleWarning = false, minutesSinceDeparture = null),
         )
         assertEquals(UxRestrictions.UNRESTRICTED, merged.uxRestrictions)
         assertEquals(TurnSignal.LEFT, merged.turnSignal)
         assertFalse(merged.vehicleWarningActive)
+        assertEquals(0f, merged.speedKmh)
+        assertEquals(Gear.PARK, merged.gear)
+        assertNull(merged.minutesSinceDeparture)
     }
 
     @Test
@@ -37,6 +45,19 @@ class CarSignalMergerTest {
         assertNull("unknown UX must stay unknown (safe restricted mode)", merged.uxRestrictions)
         assertEquals(TurnSignal.OFF, merged.turnSignal)
         assertFalse(merged.vehicleWarningActive)
+        assertNull("unknown speed must stay unknown", merged.speedKmh)
+        assertEquals(Gear.UNKNOWN, merged.gear)
+        assertFalse(merged.suddenBraking)
+    }
+
+    @Test
+    fun `vehicle gear codes map to app gears`() {
+        assertEquals(Gear.PARK, CarPropertyReader.gearFromVehicleGear(4))
+        assertEquals(Gear.REVERSE, CarPropertyReader.gearFromVehicleGear(2))
+        assertEquals(Gear.NEUTRAL, CarPropertyReader.gearFromVehicleGear(1))
+        assertEquals(Gear.DRIVE, CarPropertyReader.gearFromVehicleGear(8))
+        assertEquals(Gear.DRIVE, CarPropertyReader.gearFromVehicleGear(16)) // 수동 1단
+        assertEquals(Gear.UNKNOWN, CarPropertyReader.gearFromVehicleGear(0))
     }
 
     @Test
