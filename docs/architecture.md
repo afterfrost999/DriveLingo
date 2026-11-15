@@ -19,12 +19,15 @@ app/src/main/java/com/drivelingo/
 │   ├── vehicle/              차량·환경 신호 "입력 경계"
 │   │   ├── DrivingSignals.kt, UxRestrictions.kt, DrivingSignalSource.kt (인터페이스)
 │   │   ├── mock/             테스트 콘솔·adb 로 조작하는 Mock 신호
-│   │   └── car/              AAOS CarUxRestrictionsManager 실연동
+│   │   └── car/              실연동: CarUxRestrictions, CarPropertyManager(속도·기어), Pleos Vehicle SDK
+│   │                         (방향지시등·브레이크·경고등), 실제 값 + Mock 합성(CarSignalMerger)
+│   ├── audio/                AudioManager 오디오 포커스, 내비 안내·전화 감지
 │   ├── driving/              신호 → 운전 상황·학습 모드 판단 (순수 Kotlin)
 │   │   ├── SituationClassifier.kt  6가지 상황 + UNKNOWN
 │   │   ├── Interruption.kt         즉시 중단 사유·우선순위·재개 정책
+│   │   ├── VehicleEvents.kt        원시 신호 → 순간 이벤트(새 경고, 급제동, 출발 시점)
 │   │   └── DrivingMonitor.kt       앱 전체가 보는 StateFlow<DrivingStatus>
-│   ├── speech/               STT/TTS 경계 + 시뮬레이터
+│   ├── speech/               STT/TTS 경계 + 시뮬레이터, pleos/ (Pleos STT/TTS 실연동)
 │   ├── curriculum/           코스·수업 콘텐츠 (Mock 카탈로그)
 │   └── progress/             설정·진도·스트릭·랭킹 저장
 │
@@ -35,7 +38,9 @@ app/src/main/java/com/drivelingo/
     │   ├── engine/           수업 상태 머신 (순수 Kotlin, 단위 테스트 대상)
     │   ├── coach/            AI 코치 경계 + Mock
     │   ├── LessonSession.kt  엔진 효과 실행기(TTS/STT/AI/저장 연결)
+    │   ├── LessonController.kt  앱 수명에서 수업 하나를 소유(화면·미디어 세션이 공유)
     │   ├── LessonViewModel.kt, LessonUiState.kt, LessonScreen.kt
+    ├── media/                MediaSession(운전대 키)·MediaBrowserService(차량 미디어 화면)
     ├── report/               도착 리포트
     ├── course/               내 코스(레벨·주차·주간표)
     ├── settings/
@@ -50,6 +55,8 @@ app/src/main/java/com/drivelingo/
 | `core/driving` | 신호로 상황·모드·중단 사유를 판단합니다 | 없음 |
 | `feature/lesson/engine` | 수업 진행 규칙: `(상태, 이벤트) → (상태, 효과)` | 없음 |
 | `feature/lesson/LessonSession` | 효과를 실행하고 결과를 이벤트로 되돌립니다 | 코루틴 |
+| `feature/lesson/LessonController` | 수업을 앱 수명에 두고 화면·미디어 세션 입력을 받습니다 | 코루틴 |
+| `feature/media` | 수업 상태를 미디어 세션으로 내보내고 미디어 버튼을 넘깁니다 | androidx.media |
 | `*ViewModel` | 화면 상태를 만들고 입력을 넘깁니다 | lifecycle |
 | `*Screen` | 그리기만 합니다 | Compose |
 

@@ -11,6 +11,11 @@
 | `LessonEngineTest` (22개) | 상태 전환, 에코 가드, 늦게 온 콜백 무시, 중단·재개 지연, 재개 시 모드 재확인, 긴 대답 끊지 않기, AI 타임아웃·오프라인 대체, 인식 실패 재시도, 포커스 영구 상실 시 수동 재개, 중단 지점 저장·복원, 종료 |
 | `SituationClassifierTest` (10개) | 6가지 상황 판단, CarUx 모름 → 안전 모드, 보수적 판단, 안정화, 중단 사유 우선순위 |
 | `LessonUiMapperTest` | 상태별 화면 문구·색, 주차 중에만 텍스트 표시 |
+| `LessonControllerTest` | 시작/재생 전에는 수업이 시작되지 않음, 화면과 미디어 버튼이 같은 수업을 조작, 시동 꺼짐 → 중단 |
+| `VehicleEventsTest` | 새 경고만 5초 중단, 급제동(감속도·브레이크·오래된 표본), 출발 시점 |
+| `CarSignalMergerTest` | car 모드에서 실제 값 우선, 못 읽으면 Mock 대신 안전한 기본값, 기어 코드 변환 |
+| `AudioEnvironmentRulesTest` | 포커스 변화·요청 결과 변환, 재생 용도로 내비 안내, 오디오 모드로 전화 감지 |
+| `LessonPlaybackMapperTest` | 미디어 세션 재생 상태·가능한 동작, 부제에 학습 문장·숫자 없음 |
 | `ProgressTest` | 스트릭(차 안 탄 날 유지), 진도·주차 넘김, 저장소 재시작 후 복원, 랭킹 |
 | `ReportNarratorTest`, `LevelEstimatorTest` | 리포트 문장(조사 포함), 레벨 추천 |
 
@@ -88,3 +93,33 @@ scripts/check-car-ux.sh                # VS Code: "말차: Pleos 에뮬레이터
 
 Pleos Connect Virtual Console로 속도·기어를 바꿔도 같은 결과가 나와야 합니다. 로그가 `unknown`이면 Car 서비스에 연결하지 못한 것입니다.
 이때 앱은 안전 제한 모드로 동작합니다. 일반 에뮬레이터이거나 cold boot가 아닌 경우를 의심하세요.
+
+### 3. 실제 신호·음성·미디어 버튼 확인 (미검증 항목 체크리스트)
+
+```bash
+AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
+adb logcat -s CarUxRestrictions CarProperty PleosVehicle AudioFocus PleosTts PleosStt LessonMedia
+```
+
+| 확인할 것 | 방법 | 기대 결과 |
+|---|---|---|
+| 속도 권한 | 첫 실행 | 차량 속도 권한 요청이 뜨고, 허용하면 `CarProperty: PERF_VEHICLE_SPEED subscribed=true` |
+| Vehicle SDK 지원 여부 | 실행 직후 로그 | `turn signal / brake pedal / telltales supported (READ...)`. 지원하지 않으면 "treated as unknown" |
+| 방향지시등 | Virtual Console에서 지시등 켜기 | 수업이 즉시 멈추고, 끄면 이어서 함 |
+| 급제동 | Virtual Console에서 속도를 빠르게 낮추며 브레이크 | 1초 중단 |
+| 경고등 | Virtual Console에서 경고등(예: ABS) 켜기 | 5초 중단 후 켜져 있어도 재개 |
+| 속도·기어 | `scripts/check-car-ux.sh` 또는 Virtual Console | 시뮬레이터 패널 `속도·기어`가 실제 값으로 바뀜 |
+| 실제 음성 | 주차 중 수업 시작 | TTS가 실제로 들리고, 말할 차례에 마이크가 열려 인식 결과가 `STT 마지막`에 표시 |
+| TTS와 포커스 | 수업 중 `AudioFocus` 로그 | 코치가 말할 때 `focus change ... LOST_TRANSIENT`가 **나오지 않아야** 합니다. 나오면 `docs/pleos-sdk-status.md` 4장 1번 |
+| 내비 안내 | 내비 경로 안내 중 음성 안내 | 안내 동안 멈춤 |
+| 운전대 키 | 아래 adb 명령 또는 에뮬레이터 미디어 키 | 일시정지·재개·다시 듣기 |
+
+미디어 버튼은 일반 에뮬레이터에서도 확인할 수 있습니다.
+
+```bash
+adb shell cmd media_session dispatch play-pause   # 재생 중 → 일시정지, 일시정지 → 재개
+adb shell cmd media_session dispatch play         # 수업이 없으면 새 수업 시작 (사용자 동작)
+adb shell cmd media_session dispatch previous     # 마지막 문장 다시 듣기
+adb shell cmd media_session dispatch stop         # 중단 지점 저장 후 멈춤
+adb shell dumpsys media_session | grep -A5 LessonMedia   # 재생 상태·메타데이터 확인
+```
