@@ -9,10 +9,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
-        Pleos SDK 퍼미션은 아직 선언하지 않았다(SDK 미연동). 연동 시 Pleos App Market 과 사전 협의·승인된 범위만 선언한다.
-        예) pleos.car.permission.CAR_LIGHTS (TurnSignal), CAR_DRIVE (Brake), CAR_SAFETY (Safety),
-            pleos.car.permission.STT_SERVICE, TTS 권한. docs/pleos-sdk-status.md 참고.
+        Pleos Vehicle SDK 퍼미션. Pleos App Market 과 사전 협의해 승인된 범위만 배포할 수 있다(미승인, docs/policy-review.md).
+        CAR_LIGHTS: TurnSignal(방향지시등) / CAR_DRIVE: Brake(브레이크 페달) / CAR_SAFETY: Safety(경고등)
     -->
+    <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
 
     <!--
         android:appCategory="audio": Pleos 문서 기준 Music/Audio 로 선언. 단, Music/Audio 심사는 MediaBrowserService·

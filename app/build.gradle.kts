@@ -68,6 +68,8 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    // Pleos Vehicle SDK: 방향지시등·브레이크·경고등. car 모드에서만 객체를 만든다(core/vehicle/car/PleosVehicleReader.kt).
+    implementation(libs.pleos.vehicle)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

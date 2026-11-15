@@ -17,13 +17,17 @@ import com.drivelingo.core.speech.VoiceSimulation
 import com.drivelingo.core.vehicle.AudioFocusRequester
 import com.drivelingo.core.vehicle.DrivingSignalSource
 import com.drivelingo.core.vehicle.car.CarDrivingSignalSource
+import com.drivelingo.core.vehicle.car.CarReadings
 import com.drivelingo.core.vehicle.car.CarUxRestrictionsReader
+import com.drivelingo.core.vehicle.car.PleosVehicleReader
 import com.drivelingo.core.vehicle.mock.MockDrivingSignalSource
 import com.drivelingo.feature.lesson.coach.EnglishCoach
 import com.drivelingo.feature.lesson.coach.MockEnglishCoach
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -38,11 +42,11 @@ class AppContainer(context: Context) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     val clock: () -> Long = { SystemClock.elapsedRealtime() }
 
-    /** 테스트 콘솔이 조작하는 Mock 신호. car 모드에서도 CarUxRestrictions 외 신호는 여기서 온다. */
+    /** 테스트 콘솔이 조작하는 Mock 신호. car 모드에서도 실제 소스가 없는 신호는 여기서 온다. */
     val mockVehicle = MockDrivingSignalSource(appScope)
 
     val signalSource: DrivingSignalSource = when (BuildConfig.VEHICLE_SOURCE) {
-        "car" -> CarDrivingSignalSource(CarUxRestrictionsReader(context), mockVehicle, appScope)
+        "car" -> CarDrivingSignalSource(carReadings(context), mockVehicle, appScope, clock)
         else -> mockVehicle
     }
 
@@ -71,5 +75,11 @@ class AppContainer(context: Context) {
         }
     }
 }
+
+/** car 모드에서 쓰는 실제 차량 값. 소스마다 따로 연결하고 하나로 합친다. */
+private fun carReadings(context: Context): Flow<CarReadings> = combine(
+    CarUxRestrictionsReader(context).restrictions,
+    PleosVehicleReader(context).state,
+) { ux, vehicle -> CarReadings(ux = ux, vehicle = vehicle) }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> { error("AppContainer not provided") }

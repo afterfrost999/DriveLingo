@@ -46,6 +46,7 @@ import com.drivelingo.core.speech.NextAnswer
 import com.drivelingo.core.vehicle.AudioFocus
 import com.drivelingo.core.vehicle.TurnSignal
 import com.drivelingo.core.vehicle.UxRestrictions
+import com.drivelingo.core.vehicle.car.CarSignalMerger
 import com.drivelingo.core.vehicle.mock.DrivingPreset
 
 /**
@@ -118,7 +119,7 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 Info("중단 사유", InterruptionDetector.detect(s).joinToString { it.label }.ifEmpty { "없음" })
                 Info("TTS", speaking ?: "-")
                 Info("STT 마지막", heard ?: "-")
-                if (!container.usesMockVehicle) Info("모드", "car: CarUx 는 실제 값, 나머지는 Mock")
+                if (!container.usesMockVehicle) Info("car 모드", "실제: " + CarSignalMerger.REAL_SIGNALS.joinToString() + " · 나머지 Mock")
             }
 
             Section("주행 상황 프리셋") {
