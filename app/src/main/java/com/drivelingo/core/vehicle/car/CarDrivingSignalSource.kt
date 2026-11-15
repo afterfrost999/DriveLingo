@@ -1,5 +1,6 @@
 package com.drivelingo.core.vehicle.car
 
+import com.drivelingo.core.audio.AudioEnvironment
 import com.drivelingo.core.driving.DepartureTracker
 import com.drivelingo.core.driving.NewWarningGate
 import com.drivelingo.core.driving.SuddenBrakingDetector
@@ -26,6 +27,8 @@ data class CarReadings(
     val vehicle: PleosVehicleState = PleosVehicleState(),
     /** AAOS CarPropertyManager. */
     val motion: CarMotion = CarMotion(),
+    /** AudioManager: 오디오 포커스, 다른 앱의 내비 안내·통화. */
+    val audio: AudioEnvironment = AudioEnvironment(),
 )
 
 /** 실제 값에서 만든 순간 이벤트. */
@@ -43,11 +46,11 @@ data class DerivedEvents(
  *   - 주행 규제를 모름 → null → 안전 제한 모드
  *   - 방향지시등을 모름 → OFF. 모른다고 수업을 계속 멈출 수는 없으므로, 이 차량은 지시등 중단 없이 동작한다.
  *   - 속도를 모름 → null → 주행 규제 중이면 안전 제한 모드 / 기어를 모름 → UNKNOWN
- * - 실제 소스가 아직 없는 신호(시동, 네트워크, 오디오, 내비 경로)는 Mock 값을 쓴다.
+ * - 실제 소스가 아직 없는 신호(시동, 네트워크, 내비 경로·도착 시간)는 Mock 값을 쓴다.
  */
 object CarSignalMerger {
     /** 차량 시뮬레이터 화면에 "실제 값" 으로 표시하는 신호 이름. */
-    val REAL_SIGNALS = listOf("CarUx", "방향지시등", "경고등", "급제동", "속도", "기어")
+    val REAL_SIGNALS = listOf("CarUx", "방향지시등", "경고등", "급제동", "속도", "기어", "오디오 포커스", "내비 안내", "전화")
 
     fun merge(mock: DrivingSignals, real: CarReadings, events: DerivedEvents): DrivingSignals = mock.copy(
         uxRestrictions = real.ux,
@@ -57,6 +60,9 @@ object CarSignalMerger {
         speedKmh = real.motion.speedKmh,
         gear = real.motion.gear ?: Gear.UNKNOWN,
         minutesSinceDeparture = events.minutesSinceDeparture,
+        audioFocus = real.audio.focus,
+        navVoiceGuidanceActive = real.audio.navGuidanceActive,
+        phoneCallActive = real.audio.phoneCallActive,
     )
 }
 

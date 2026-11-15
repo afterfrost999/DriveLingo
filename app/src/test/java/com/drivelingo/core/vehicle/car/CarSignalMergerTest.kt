@@ -1,5 +1,7 @@
 package com.drivelingo.core.vehicle.car
 
+import com.drivelingo.core.audio.AudioEnvironment
+import com.drivelingo.core.vehicle.AudioFocus
 import com.drivelingo.core.vehicle.DrivingSignals
 import com.drivelingo.core.vehicle.Gear
 import com.drivelingo.core.vehicle.TurnSignal
@@ -71,5 +73,19 @@ class CarSignalMergerTest {
     fun `derived warning event is passed through`() {
         val merged = CarSignalMerger.merge(mock, CarReadings(), DerivedEvents(vehicleWarning = true))
         assertTrue(merged.vehicleWarningActive)
+    }
+
+    @Test
+    fun `audio environment comes from the real audio source`() {
+        val noisyMock = mock.copy(audioFocus = AudioFocus.LOST, phoneCallActive = true, navVoiceGuidanceActive = true)
+        val quiet = CarSignalMerger.merge(noisyMock, CarReadings(), DerivedEvents())
+        assertEquals(AudioFocus.GAINED, quiet.audioFocus)
+        assertFalse(quiet.phoneCallActive)
+        assertFalse(quiet.navVoiceGuidanceActive)
+
+        val real = CarReadings(audio = AudioEnvironment(AudioFocus.LOST_TRANSIENT, navGuidanceActive = true, phoneCallActive = false))
+        val merged = CarSignalMerger.merge(mock, real, DerivedEvents())
+        assertEquals(AudioFocus.LOST_TRANSIENT, merged.audioFocus)
+        assertTrue(merged.navVoiceGuidanceActive)
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.drivelingo.BuildConfig
+import com.drivelingo.core.audio.AudioFocusController
 import com.drivelingo.core.curriculum.CurriculumRepository
 import com.drivelingo.core.curriculum.MockCurriculumRepository
 import com.drivelingo.core.driving.DrivingMonitor
@@ -57,6 +58,10 @@ class AppContainer(context: Context) {
     /** 테스트 콘솔이 조작하는 Mock 신호. car 모드에서도 실제 소스가 없는 신호는 여기서 온다. */
     val mockVehicle = MockDrivingSignalSource(appScope)
 
+    /** car 모드: 실제 오디오 포커스. 일반 에뮬레이터(mock)에서는 콘솔로 포커스 상실을 재현한다. */
+    private val audioFocusController: AudioFocusController? =
+        if (BuildConfig.VEHICLE_SOURCE == "car") AudioFocusController(context) else null
+
     val signalSource: DrivingSignalSource = when (BuildConfig.VEHICLE_SOURCE) {
         "car" -> CarDrivingSignalSource(carReadings(context), mockVehicle, appScope, clock)
         else -> mockVehicle
@@ -69,13 +74,13 @@ class AppContainer(context: Context) {
             CarUxRestrictionsReader(car).restrictions,
             PleosVehicleReader(context).state,
             CarPropertyReader(context, car, carPermissionChanges).motion,
-        ) { ux, vehicle, motion -> CarReadings(ux = ux, vehicle = vehicle, motion = motion) }
+            checkNotNull(audioFocusController).environment,
+        ) { ux, vehicle, motion, audio -> CarReadings(ux = ux, vehicle = vehicle, motion = motion, audio = audio) }
     }
 
     val drivingMonitor = DrivingMonitor(signalSource, appScope, clock)
 
-    // TODO(pleos): 실제 오디오 포커스는 AudioManager.requestAudioFocus(AudioFocusRequest) 로 구현한다.
-    val audioFocus: AudioFocusRequester = mockVehicle
+    val audioFocus: AudioFocusRequester = audioFocusController ?: mockVehicle
 
     /** Mock 음성 조작 상태. pleos 모드에서도 시뮬레이터 화면의 "TTS·STT 마지막" 표시에 쓴다. */
     val voiceSimulation = VoiceSimulation()
