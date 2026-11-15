@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.drivelingo.core.vehicle.UxRestrictions
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -45,14 +46,26 @@ class CarUxRestrictionsReader(private val context: Context) {
                 trySend(null)
                 return@createCar
             }
-            trySend(uxManager.currentCarUxRestrictions?.toModel())
-            uxManager.registerListener { restrictions -> trySend(restrictions?.toModel()) }
+            publish(uxManager.currentCarUxRestrictions?.toModel(), "initial")
+            uxManager.registerListener { restrictions -> publish(restrictions?.toModel(), "changed") }
         }
 
         awaitClose {
             manager?.unregisterListener()
             car.disconnect()
         }
+    }
+
+    /** 받은 값을 로그로 남긴다. scripts/check-car-ux.sh 가 이 로그로 실제 수신 여부를 확인한다. */
+    private fun ProducerScope<UxRestrictions?>.publish(value: UxRestrictions?, reason: String) {
+        Log.i(
+            TAG,
+            "$reason: " + (value?.let {
+                "requiresDO=${it.requiresDistractionOptimization} active=${it.activeRestrictions} " +
+                    UxRestrictions.describe(it.activeRestrictions)
+            } ?: "unknown"),
+        )
+        trySend(value)
     }
 
     private fun CarUxRestrictions.toModel() = UxRestrictions(

@@ -54,3 +54,37 @@ adb logcat -s DebugVehicle       # 적용 결과 확인
 
 - 수업 세션은 `LessonViewModel`이 갖고 있어서, 회전하거나 창 크기가 바뀌어도 수업이 끊기지 않습니다.
 - 확인 방법: 에뮬레이터 회전 버튼을 누르거나 `adb shell settings put system user_rotation 1`(가로) / `0`(세로)을 실행합니다. 리사이즈는 `adb shell wm size 1920x720`(차량 와이드 비율), 되돌릴 때는 `adb shell wm size reset`입니다.
+
+## Pleos Connect 에뮬레이터에서 확인하기
+
+### 1. 설치 (한 번만)
+
+```bash
+scripts/setup-pleos-emulator.sh        # VS Code: Tasks: Run Task → "말차: Pleos Connect 에뮬레이터 설치"
+```
+
+- 공식 절차(Android Studio → SDK Manager → SDK Update Sites에 Pleos 이미지 URL 추가 → Automotive / Pleos Connect v2.1.0 AVD 생성)를 터미널에서 똑같이 합니다.
+  Mac(Apple Silicon)은 `crp-arm64-sys-img.xml`, Windows/Linux는 `crp-sys-img.xml` 이미지를 씁니다.
+- 이미지는 약 4.7GB이고, **42dot SDK 라이선스 전문을 보여 준 뒤 동의해야** 설치합니다.
+- AVD 설정은 공식 가이드대로 맞춥니다. **Cold boot 강제**(Quick boot이면 VHAL을 못 씁니다), RAM 4GB, 하드웨어 그래픽, 마이크 입력을 켭니다.
+- 공식 권장 사양은 외장 GPU입니다(최소 RTX 3060 Laptop 6GB급). 사양이 부족하면 부팅이 느리거나 화면이 깨질 수 있습니다.
+- Android Studio로 설치해도 됩니다. 이때도 AVD 이름을 `Pleos_Connect_v2.1`로 하면 아래 명령을 그대로 쓸 수 있습니다.
+
+### 2. car 모드로 실행하고 CarUxRestrictions 확인
+
+```bash
+AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car
+scripts/check-car-ux.sh                # VS Code: "말차: Pleos 에뮬레이터에서 CarUx 확인"
+```
+
+`check-car-ux.sh`는 VHAL 값(`PERF_VEHICLE_SPEED`, `GEAR_SELECTION`, `PARKING_BRAKE_ON`)을 넣어 주차 → 정차 → 주행(60km/h) → 주차를 만듭니다.
+단계마다 플랫폼 상태(`dumpsys car_service`)와 앱이 받은 값(`logcat -s CarUxRestrictions`)을 나란히 보여 줍니다.
+
+| 단계 | 기대 결과 |
+|---|---|
+| 주차 | 앱 로그 `requiresDO=false`, 화면 텍스트·설정 표시 |
+| 주행 60km/h | 앱 로그 `requiresDO=true active=511 [...]`, 화면에서 숫자·텍스트·설정 숨김, 콘솔 `CarUx: DO 필요` |
+| 다시 주차 | 제한 해제 |
+
+Pleos Connect Virtual Console로 속도·기어를 바꿔도 같은 결과가 나와야 합니다. 로그가 `unknown`이면 Car 서비스에 연결하지 못한 것입니다.
+이때 앱은 안전 제한 모드로 동작합니다. 일반 에뮬레이터이거나 cold boot가 아닌 경우를 의심하세요.

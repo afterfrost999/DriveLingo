@@ -16,6 +16,18 @@
       "problemMatcher": []
     },
     {
+      "label": "말차: Pleos Connect 에뮬레이터 설치",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/setup-pleos-emulator.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "말차: Pleos 에뮬레이터에서 CarUx 확인",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/check-car-ux.sh",
+      "problemMatcher": []
+    },
+    {
       "label": "말차: 단위 테스트",
       "type": "shell",
       "command": "./gradlew :app:testDebugUnitTest --console=plain",
