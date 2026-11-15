@@ -30,6 +30,7 @@ import com.drivelingo.core.vehicle.mock.MockDrivingSignalSource
 import com.drivelingo.feature.lesson.LessonController
 import com.drivelingo.feature.lesson.coach.EnglishCoach
 import com.drivelingo.feature.lesson.coach.MockEnglishCoach
+import com.drivelingo.feature.media.LessonMediaSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -112,6 +113,9 @@ class AppContainer(context: Context) {
         appScope = appScope,
         clock = clock,
     )
+
+    /** 수업을 미디어 세션으로 노출한다(운전대 재생·일시정지 키, 차량 미디어 화면). */
+    val mediaSession = LessonMediaSession(context, lessons, appScope)
 
     val usesMockVehicle: Boolean get() = BuildConfig.VEHICLE_SOURCE != "car"
 

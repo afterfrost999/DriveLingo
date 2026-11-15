@@ -25,8 +25,8 @@
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
 
     <!--
-        android:appCategory="audio": Pleos 문서 기준 Music/Audio 로 선언. 단, Music/Audio 심사는 MediaBrowserService·
-        MediaSession·스티어링 휠 키 지원을 요구하며 이 프로토타입에는 없다. 카테고리 적합성은 docs/policy-review.md 참고.
+        android:appCategory="audio": Pleos 문서 기준 Music/Audio 로 선언. Music/Audio 심사가 요구하는 MediaBrowserService·
+        MediaSession·스티어링 휠 키는 feature/media/ 에 있다. 카테고리 적합성(마이크 대화 포함)은 docs/policy-review.md 참고.
     -->
     <application
         android:name=".app.DriveLingoApplication"
@@ -55,5 +55,14 @@
             -->
             <meta-data android:name="distractionOptimized" android:value="true" />
         </activity>
+
+        <!-- 차량 미디어 화면(Media Center)이 붙는 MediaBrowserService. 수업을 "오디오 레슨"으로 노출한다. -->
+        <service
+            android:name=".feature.media.LessonMediaService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

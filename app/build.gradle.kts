@@ -75,6 +75,8 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.kotlinx.coroutines.android)
+    // MediaBrowserServiceCompat / MediaSessionCompat (Music/Audio 카테고리 필수, feature/media/)
+    implementation(libs.androidx.media)
     implementation(libs.kotlinx.serialization.json)
     // Pleos Vehicle SDK: 방향지시등·브레이크·경고등. car 모드에서만 객체를 만든다(core/vehicle/car/PleosVehicleReader.kt).
     implementation(libs.pleos.vehicle)
