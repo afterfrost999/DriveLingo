@@ -16,6 +16,14 @@
       "problemMatcher": []
     },
     {
+      "label": "말차: 실행 (Pleos 실연동: 차량 신호 + 음성)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/run.sh",
+      "args": ["-Pdrivelingo.vehicleSource=car", "-Pdrivelingo.voiceSource=pleos"],
+      "options": { "env": { "AVD": "Pleos_Connect_v2.1" } },
+      "problemMatcher": []
+    },
+    {
       "label": "말차: Pleos Connect 에뮬레이터 설치",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/setup-pleos-emulator.sh",

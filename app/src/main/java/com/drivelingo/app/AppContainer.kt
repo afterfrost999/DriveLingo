@@ -14,6 +14,9 @@ import com.drivelingo.core.speech.SimulatedVoiceOutput
 import com.drivelingo.core.speech.VoiceInput
 import com.drivelingo.core.speech.VoiceOutput
 import com.drivelingo.core.speech.VoiceSimulation
+import com.drivelingo.core.speech.pleos.PleosCredentials
+import com.drivelingo.core.speech.pleos.PleosVoiceInput
+import com.drivelingo.core.speech.pleos.PleosVoiceOutput
 import com.drivelingo.core.vehicle.AudioFocusRequester
 import com.drivelingo.core.vehicle.DrivingSignalSource
 import com.drivelingo.core.vehicle.car.CarConnection
@@ -74,10 +77,17 @@ class AppContainer(context: Context) {
     // TODO(pleos): 실제 오디오 포커스는 AudioManager.requestAudioFocus(AudioFocusRequest) 로 구현한다.
     val audioFocus: AudioFocusRequester = mockVehicle
 
+    /** Mock 음성 조작 상태. pleos 모드에서도 시뮬레이터 화면의 "TTS·STT 마지막" 표시에 쓴다. */
     val voiceSimulation = VoiceSimulation()
-    // TODO(pleos): ai.pleos.playground.tts.TextToSpeech / ai.pleos.playground.stt.SpeechToText 로 교체
-    val voiceOutput: VoiceOutput = SimulatedVoiceOutput(voiceSimulation)
-    val voiceInput: VoiceInput = SimulatedVoiceInput(voiceSimulation)
+
+    val usesPleosVoice: Boolean get() = BuildConfig.VOICE_SOURCE == "pleos"
+
+    private val pleosCredentials = PleosCredentials.of(BuildConfig.PLEOS_CLIENT_ID, BuildConfig.PLEOS_CLIENT_SECRET)
+
+    val voiceOutput: VoiceOutput =
+        if (usesPleosVoice) PleosVoiceOutput(context, pleosCredentials, voiceSimulation) else SimulatedVoiceOutput(voiceSimulation)
+    val voiceInput: VoiceInput =
+        if (usesPleosVoice) PleosVoiceInput(context, pleosCredentials, voiceSimulation) else SimulatedVoiceInput(voiceSimulation)
     // TODO(backend): 백엔드 경유 LLM 코치로 교체. API 키는 앱에 넣지 않는다.
     val coach: EnglishCoach = MockEnglishCoach(voiceSimulation)
 

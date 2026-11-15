@@ -6,6 +6,11 @@ plugins {
 }
 
 val vehicleSource = providers.gradleProperty("drivelingo.vehicleSource").getOrElse("mock")
+val voiceSource = providers.gradleProperty("drivelingo.voiceSource").getOrElse("simulated")
+// Pleos STT/TTS 서버 모드용 앱 등록 정보. 저장소에 넣지 않는다(~/.gradle/gradle.properties 또는 -P 로 전달).
+// 비어 있으면 On-device 엔진만 쓴다. 배포 빌드에서는 앱에 넣지 말고 백엔드에서 받아 와야 한다.
+val pleosClientId = providers.gradleProperty("drivelingo.pleosClientId").getOrElse("")
+val pleosClientSecret = providers.gradleProperty("drivelingo.pleosClientSecret").getOrElse("")
 
 android {
     namespace = "com.drivelingo"
@@ -23,6 +28,9 @@ android {
         versionCode = 1
         versionName = "0.1.0-prototype"
         buildConfigField("String", "VEHICLE_SOURCE", "\"$vehicleSource\"")
+        buildConfigField("String", "VOICE_SOURCE", "\"$voiceSource\"")
+        buildConfigField("String", "PLEOS_CLIENT_ID", "\"$pleosClientId\"")
+        buildConfigField("String", "PLEOS_CLIENT_SECRET", "\"$pleosClientSecret\"")
     }
 
     buildTypes {
@@ -70,6 +78,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     // Pleos Vehicle SDK: 방향지시등·브레이크·경고등. car 모드에서만 객체를 만든다(core/vehicle/car/PleosVehicleReader.kt).
     implementation(libs.pleos.vehicle)
+    // Pleos STT/TTS. voiceSource=pleos 에서만 객체를 만든다(core/speech/pleos/).
+    implementation(libs.pleos.stt)
+    implementation(libs.pleos.tts)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

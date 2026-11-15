@@ -117,6 +117,7 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 )
                 Info("속도·기어", "${s.speedKmh?.let { "%.0f".format(it) } ?: "?"} km/h · ${s.gear}")
                 Info("중단 사유", InterruptionDetector.detect(s).joinToString { it.label }.ifEmpty { "없음" })
+                Info("음성", if (container.usesPleosVoice) "Pleos STT/TTS (실제 음성)" else "시뮬레이션 (소리 없음)")
                 Info("TTS", speaking ?: "-")
                 Info("STT 마지막", heard ?: "-")
                 if (!container.usesMockVehicle) Info("car 모드", "실제: " + CarSignalMerger.REAL_SIGNALS.joinToString() + " · 나머지 Mock")
@@ -163,9 +164,12 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 }
             }
 
-            Section("다음 음성 인식 (1회)") {
-                NextAnswer.entries.forEach { a ->
-                    Chip(a.label, selected = a == nextAnswer) { container.voiceSimulation.nextAnswer.value = a }
+            // 실제 음성(pleos) 모드에서는 인식 결과를 강제로 정할 수 없다.
+            if (!container.usesPleosVoice) {
+                Section("다음 음성 인식 (1회)") {
+                    NextAnswer.entries.forEach { a ->
+                        Chip(a.label, selected = a == nextAnswer) { container.voiceSimulation.nextAnswer.value = a }
+                    }
                 }
             }
 
