@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 프로토타입은 일반 에뮬레이터에서도 실행되도록 required=false. 차량 배포 시 true 로 바꾼다. -->
+    <uses-feature android:name="android.hardware.type.automotive" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        Pleos SDK 퍼미션은 아직 선언하지 않았다(SDK 미연동). 연동 시 Pleos App Market 과 사전 협의·승인된 범위만 선언한다.
+        예) pleos.car.permission.CAR_LIGHTS (TurnSignal), CAR_DRIVE (Brake), CAR_SAFETY (Safety),
+            pleos.car.permission.STT_SERVICE, TTS 권한. docs/pleos-sdk-status.md 참고.
+    -->
+
+    <!--
+        android:appCategory="audio": Pleos 문서 기준 Music/Audio 로 선언. 단, Music/Audio 심사는 MediaBrowserService·
+        MediaSession·스티어링 휠 키 지원을 요구하며 이 프로토타입에는 없다. 카테고리 적합성은 docs/policy-review.md 참고.
+    -->
+    <application
+        android:name=".app.DriveLingoApplication"
+        android:allowBackup="false"
+        android:appCategory="audio"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.DriveLingo">
+
+        <!-- AAOS Car API (CarUxRestrictionsManager). 차량 이미지에만 있으므로 선택 사항. -->
+        <uses-library android:name="android.car" android:required="false" />
+
+        <activity
+            android:name=".app.MainActivity"
+            android:exported="true"
+            android:resizeableActivity="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!--
+                주행 중 사용(DO) 선언. 선언하지 않으면 플랫폼이 주행 중 앱을 막는다.
+                DO 선언 앱은 CarUxRestrictions 에 맞춰 직접 UX 를 제한해야 한다(이 앱은 DrivingMonitor 로 처리).
+                실제 배포 시 DO 허용 여부는 심사 대상이다.
+            -->
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
+    </application>
+</manifest>

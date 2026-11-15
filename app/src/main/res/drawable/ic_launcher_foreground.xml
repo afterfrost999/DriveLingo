@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 말차 로고: 나뭇잎 + 음성 파형 막대 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:translateX="30" android:translateY="30">
+        <path android:fillColor="#5FD3A1"
+            android:pathData="M3,45C3,21 16,3 45,3C45,27 32,45 3,45Z" />
+        <path android:strokeColor="#0B1220" android:strokeWidth="3.6" android:strokeLineCap="round"
+            android:pathData="M17,23L17,33M23,17L23,34M29,15L29,29M34.4,16L34.4,22" />
+    </group>
+</vector>

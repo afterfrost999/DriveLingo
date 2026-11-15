@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "말차: 에뮬레이터에서 실행",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/run.sh",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "말차: 실행 (차량 CarUx 실연동 모드)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/run.sh",
+      "args": ["-Pdrivelingo.vehicleSource=car"],
+      "problemMatcher": []
+    },
+    {
+      "label": "말차: 단위 테스트",
+      "type": "shell",
+      "command": "./gradlew :app:testDebugUnitTest --console=plain",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "말차: 로그 보기",
+      "type": "shell",
+      "command": "~/Library/Android/sdk/platform-tools/adb logcat -s LessonSession DebugVehicle CarUxRestrictions AndroidRuntime",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
