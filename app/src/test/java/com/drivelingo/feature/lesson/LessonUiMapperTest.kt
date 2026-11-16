@@ -41,6 +41,21 @@ class LessonUiMapperTest {
     }
 
     @Test
+    fun `ring shows the answer timer only while the mic is open on a timed turn`() {
+        val parked = status(DrivingPreset.PARKED, DrivingSituation.PARKED)
+        val prompt = run(LearningMode.SHORT_ANSWER, 0, LessonEvent.Start(0))
+        val answer = LessonEngine.reduce(prompt, LessonEvent.SpeechFinished(prompt.audioToken)).state
+        val window = ListenWindow(token = answer.audioToken, limitMs = 12_000L)
+
+        assertEquals(window, LessonUiMapper.map(answer, parked, window).listenTimer)
+        // 마이크가 열리기 전(효과음·에코 가드), 코치가 말하는 중에는 수업 진행률을 보여 준다.
+        assertNull(LessonUiMapper.map(answer, parked, null).listenTimer)
+        assertNull(LessonUiMapper.map(prompt, parked, window).listenTimer)
+        // 시간 제한이 없는 긴 대답은 채우지 않는다.
+        assertNull(LessonUiMapper.map(answer, parked, window.copy(limitMs = null)).listenTimer)
+    }
+
+    @Test
     fun `text details are shown only while parked`() {
         val s = run(LearningMode.SHORT_ANSWER, 0, LessonEvent.Start(0))
         assertNull(LessonUiMapper.map(s, status(DrivingPreset.CRUISING, DrivingSituation.CRUISING)).detail)

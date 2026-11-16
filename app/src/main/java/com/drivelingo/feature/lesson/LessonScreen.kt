@@ -33,6 +33,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -140,7 +144,17 @@ private fun Ring(state: LessonUiState, size: Dp) {
         VoiceVisual.QUIET -> Icons.Outlined.Spa to VoiceTone.NEUTRAL
         VoiceVisual.FINISHED -> Icons.Filled.Check to VoiceTone.MINT
     }
-    VoiceRing(icon = icon, tone = tone, progress = state.progress, size = size, showProgress = state.visual != VoiceVisual.PAUSED)
+    val timer = state.listenTimer
+    if (timer?.limitMs != null) {
+        // 말할 차례: 마이크가 열린 순간부터 대답 시간 동안 링을 일정한 속도로 한 번 채운다(반복하지 않음).
+        val fill = remember(timer.token) { Animatable(0f) }
+        LaunchedEffect(timer.token) {
+            fill.animateTo(1f, tween(durationMillis = timer.limitMs.toInt(), easing = LinearEasing))
+        }
+        VoiceRing(icon = icon, tone = tone, progress = fill.value, size = size, smooth = false)
+    } else {
+        VoiceRing(icon = icon, tone = tone, progress = state.progress, size = size, showProgress = state.visual != VoiceVisual.PAUSED)
+    }
 }
 
 @Composable

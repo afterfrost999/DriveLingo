@@ -21,7 +21,7 @@ class LessonViewModel(container: AppContainer) : ViewModel() {
     private val session: LessonSession = lessons.startOrAttach()
 
     val uiState: StateFlow<LessonUiState> =
-        combine(session.state, container.drivingMonitor.status, LessonUiMapper::map)
+        combine(session.state, container.drivingMonitor.status, session.listening, LessonUiMapper::map)
             .stateIn(
                 viewModelScope, SharingStarted.Eagerly,
                 LessonUiMapper.map(session.state.value, container.drivingMonitor.status.value),

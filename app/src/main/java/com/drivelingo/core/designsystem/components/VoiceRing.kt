@@ -32,8 +32,9 @@ enum class VoiceTone(val accent: Color, val container: Color) {
 }
 
 /**
- * 중앙 원형 음성 상태 표시. 바깥 링은 수업 진행률, 안쪽 원은 현재 상태(색·아이콘).
+ * 중앙 원형 음성 상태 표시. 바깥 링은 진행률(수업 진행률 또는 대답 시간), 안쪽 원은 현재 상태(색·아이콘).
  * 주행 중 시선을 끌지 않도록 반복 애니메이션은 쓰지 않고, 진행률 변화만 부드럽게 보간한다.
+ * [smooth] 가 false 면 호출한 쪽이 이미 매 프레임 값을 주는 것이라(대답 시간 링) 다시 보간하지 않는다.
  */
 @Composable
 fun VoiceRing(
@@ -43,8 +44,10 @@ fun VoiceRing(
     size: Dp,
     modifier: Modifier = Modifier,
     showProgress: Boolean = true,
+    smooth: Boolean = true,
 ) {
-    val animated by animateFloatAsState(progress, animationSpec = tween(600), label = "ring")
+    val eased by animateFloatAsState(progress, animationSpec = tween(600), label = "ring")
+    val animated = if (smooth) eased else progress
     val stroke = (size.value * 0.04f).dp
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         if (showProgress) {
