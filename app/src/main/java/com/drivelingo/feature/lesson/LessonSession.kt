@@ -1,6 +1,7 @@
 package com.drivelingo.feature.lesson
 
 import android.util.Log
+import com.drivelingo.core.audio.EarconPlayer
 import com.drivelingo.core.curriculum.LessonPlan
 import com.drivelingo.core.driving.DrivingMonitor
 import com.drivelingo.core.driving.InterruptionDetector
@@ -46,6 +47,7 @@ class LessonSession(
     private val drivingMonitor: DrivingMonitor,
     private val voiceOutput: VoiceOutput,
     private val voiceInput: VoiceInput,
+    private val earcons: EarconPlayer,
     private val coach: EnglishCoach,
     private val audioFocus: AudioFocusRequester,
     private val progress: ProgressRepository,
@@ -115,6 +117,7 @@ class LessonSession(
             is LessonEffect.Speak -> {
                 audioJob?.cancel()
                 audioJob = scope.launch {
+                    effect.cue?.let { earcons.play(it) }
                     voiceOutput.speak(effect.text, effect.rate)
                     send(LessonEvent.SpeechFinished(effect.token))
                 }
@@ -123,6 +126,8 @@ class LessonSession(
                 audioJob?.cancel()
                 voiceOutput.stop()
                 audioJob = scope.launch {
+                    // '띵'이 끝난 뒤 에코 가드만큼 기다리고 마이크를 연다(STT 가 효과음을 듣지 않도록).
+                    effect.cue?.let { earcons.play(it) }
                     delay(effect.echoGuardMs)
                     val result = voiceInput.listen(effect.turn.toListenRequest())
                     send(
@@ -133,6 +138,10 @@ class LessonSession(
                         },
                     )
                 }
+            }
+            is LessonEffect.PlayEarcon -> {
+                audioJob?.cancel()
+                audioJob = scope.launch { earcons.play(effect.earcon) }
             }
             LessonEffect.StopAudio -> {
                 audioJob?.cancel()

@@ -3,6 +3,8 @@ package com.drivelingo.app
 import android.content.Context
 import android.os.SystemClock
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.drivelingo.core.audio.AudioTrackEarconPlayer
+import com.drivelingo.core.audio.EarconPlayer
 import com.drivelingo.BuildConfig
 import com.drivelingo.core.audio.AudioFocusController
 import com.drivelingo.core.curriculum.CurriculumRepository
@@ -10,6 +12,7 @@ import com.drivelingo.core.curriculum.MockCurriculumRepository
 import com.drivelingo.core.driving.DrivingMonitor
 import com.drivelingo.core.progress.ProgressRepository
 import com.drivelingo.core.progress.SharedPrefsStore
+import com.drivelingo.core.speech.SimulatedEarconPlayer
 import com.drivelingo.core.speech.SimulatedVoiceInput
 import com.drivelingo.core.speech.SimulatedVoiceOutput
 import com.drivelingo.core.speech.VoiceInput
@@ -95,6 +98,9 @@ class AppContainer(context: Context) {
         if (usesPleosVoice) PleosVoiceOutput(context, pleosCredentials, voiceSimulation) else SimulatedVoiceOutput(voiceSimulation)
     val voiceInput: VoiceInput =
         if (usesPleosVoice) PleosVoiceInput(context, pleosCredentials, voiceSimulation) else SimulatedVoiceInput(voiceSimulation)
+    /** 효과음. 음성 모드를 따른다(pleos: 실제 소리, 시뮬레이션: 소리 없이 시뮬레이터에 표시). */
+    val earcons: EarconPlayer =
+        if (usesPleosVoice) AudioTrackEarconPlayer(voiceSimulation) else SimulatedEarconPlayer(voiceSimulation)
     // TODO(backend): 백엔드 경유 LLM 코치로 교체. API 키는 앱에 넣지 않는다.
     val coach: EnglishCoach = MockEnglishCoach(voiceSimulation)
 
@@ -106,6 +112,7 @@ class AppContainer(context: Context) {
         drivingMonitor = drivingMonitor,
         voiceOutput = voiceOutput,
         voiceInput = voiceInput,
+        earcons = earcons,
         coach = coach,
         audioFocus = audioFocus,
         curriculum = curriculum,

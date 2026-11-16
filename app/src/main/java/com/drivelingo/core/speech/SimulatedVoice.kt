@@ -1,5 +1,8 @@
 package com.drivelingo.core.speech
 
+import com.drivelingo.core.audio.Earcon
+import com.drivelingo.core.audio.EarconPlayer
+import com.drivelingo.core.audio.EarconSynth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,8 +23,13 @@ class VoiceSimulation {
     private val _lastHeard = MutableStateFlow<String?>(null)
     val lastHeard: StateFlow<String?> = _lastHeard.asStateFlow()
 
+    private val _lastEarcon = MutableStateFlow<String?>(null)
+    /** 마지막으로 낸 효과음(차량 시뮬레이터 표시용). 실제 재생 여부와 관계없이 기록한다. */
+    val lastEarcon: StateFlow<String?> = _lastEarcon.asStateFlow()
+
     internal fun setSpeaking(text: String?) { _nowSpeaking.value = text }
     internal fun setHeard(text: String?) { _lastHeard.value = text }
+    fun setEarcon(label: String?) { _lastEarcon.value = label }
 
     internal fun consumeNextAnswer(): NextAnswer = nextAnswer.value.also { nextAnswer.value = NextAnswer.AUTO }
 }
@@ -110,5 +118,13 @@ internal object MockLearnerAnswers {
         }
         val pair = byItem[request.itemId] ?: return expected ?: "Sorry, I don't know."
         return if (request.style == AnswerStyle.LONG) pair.second else pair.first
+    }
+}
+
+/** 소리 없이 효과음 길이만큼 기다리고 차량 시뮬레이터에 표시만 한다. */
+class SimulatedEarconPlayer(private val simulation: VoiceSimulation) : EarconPlayer {
+    override suspend fun play(earcon: Earcon) {
+        simulation.setEarcon(earcon.label)
+        delay(EarconSynth.durationMs(earcon).toLong())
     }
 }

@@ -1,5 +1,6 @@
 package com.drivelingo.feature.lesson.engine
 
+import com.drivelingo.core.audio.Earcon
 import com.drivelingo.core.curriculum.CommuteType
 import com.drivelingo.core.curriculum.LessonPlan
 import com.drivelingo.core.driving.Interruption
@@ -8,6 +9,7 @@ import com.drivelingo.core.progress.LessonTally
 import com.drivelingo.feature.lesson.engine.LessonEffect.AbandonAudioFocus
 import com.drivelingo.feature.lesson.engine.LessonEffect.Finish
 import com.drivelingo.feature.lesson.engine.LessonEffect.Listen
+import com.drivelingo.feature.lesson.engine.LessonEffect.PlayEarcon
 import com.drivelingo.feature.lesson.engine.LessonEffect.RequestAudioFocus
 import com.drivelingo.feature.lesson.engine.LessonEffect.RequestFeedback
 import com.drivelingo.feature.lesson.engine.LessonEffect.SaveCheckpoint
@@ -35,6 +37,9 @@ import com.drivelingo.feature.lesson.engine.LessonPhase.THINKING
  * - 재개는 (1) 모든 중단 사유 해소 (2) 사유별 대기 시간 경과 (3) 현재 모드 재확인 후에만 한다.
  *   현재 모드가 SILENT 면 말하지 않고 QUIET 로 간다.
  * - 오디오 포커스 영구 상실·사용자 일시정지는 자동 재개하지 않는다.
+ *
+ * 효과음(UX 기획서 4장): 말할 차례 '띵'(Listen), 콤보(맞은 답 접수), 멈춤 '톡'(사용자 일시정지·방향지시등),
+ * 재개, 긴 대답 질문 '띵동', 세션 완료. 효과음은 말 앞에 붙여([LessonEffect.Speak.cue]) 순서가 섞이지 않게 한다.
  */
 object LessonEngine {
 
@@ -89,9 +94,15 @@ object LessonEngine {
             ?: return Transition(s.copy(phase = QUIET, turn = null, feedback = null))
         val tally = if (countTurn) s.tally.copy(turnsByMode = s.tally.turnsByMode.increment(turn.mode)) else s.tally
         val prompt = if (resumed) "Okay, let's continue. ${turn.prompt}" else turn.prompt
+        val cue = when {
+            resumed -> Earcon.Resume
+            turn.activity == ActivityType.LONG_ANSWER -> Earcon.LongQuestion
+            else -> null
+        }
         return speak(
             s.copy(phase = PROMPT, turn = turn, retries = 0, lastAnswer = null, feedback = null, tally = tally),
             prompt,
+            cue,
         )
     }
 
@@ -123,7 +134,7 @@ object LessonEngine {
         } else {
             "That's all for today. Drive safe!"
         }
-        return speak(s.copy(phase = CLOSING, turn = null), line)
+        return speak(s.copy(phase = CLOSING, turn = null), line, Earcon.SessionComplete)
     }
 
     private fun finish(s: LessonState) =
@@ -170,7 +181,9 @@ object LessonEngine {
             corrections = feedback.recast?.let { t.corrections + it } ?: t.corrections,
             coachFallbacks = t.coachFallbacks + if (fallback) 1 else 0,
         )
-        return speak(s.copy(phase = FEEDBACK, feedback = feedback, tally = tally), feedback.reply)
+        // 콤보가 올라갈 때만 콤보음. 틀려서 콤보가 끊기면 소리 없이 되받아 준다(감점 느낌을 주지 않도록).
+        val cue = if (combo > t.combo) Earcon.Combo(combo) else null
+        return speak(s.copy(phase = FEEDBACK, feedback = feedback, tally = tally), feedback.reply, cue)
     }
 
     // ---- 운전 상황 / 네트워크 ----
@@ -215,7 +228,9 @@ object LessonEngine {
 
     private fun pause(s: LessonState): Transition {
         val token = s.audioToken + 1
-        return Transition(s.copy(phase = PAUSED, pausedFrom = s.phase, audioToken = token), listOf(StopAudio))
+        val effects = if (Interruption.allowPauseCue(s.activeInterruptions)) listOf(StopAudio, PlayEarcon(Earcon.Pause))
+        else listOf(StopAudio)
+        return Transition(s.copy(phase = PAUSED, pausedFrom = s.phase, audioToken = token), effects)
     }
 
     private fun tryResume(s: LessonState, nowMs: Long): Transition {
@@ -227,7 +242,7 @@ object LessonEngine {
             // 이미 채점까지 끝난 턴: 피드백만 다시 들려주고 다음으로. 말할 수 없는 구간이면 조용히 넘어간다.
             from == FEEDBACK && feedback != null ->
                 if (s.mode == LearningMode.SILENT) completeItem(resumed)
-                else speak(resumed.copy(phase = FEEDBACK), feedback.reply)
+                else speak(resumed.copy(phase = FEEDBACK), feedback.reply, Earcon.Resume)
             from == CLOSING -> close(resumed)
             // 그 밖에는 현재 모드로 턴을 다시 짠다(멈춘 사이 운전 상황이 바뀌었을 수 있다).
             else -> {
@@ -273,9 +288,9 @@ object LessonEngine {
 
     // ---- helpers ----
 
-    private fun speak(s: LessonState, text: String): Transition {
+    private fun speak(s: LessonState, text: String, cue: Earcon? = null): Transition {
         val token = s.audioToken + 1
-        return Transition(s.copy(audioToken = token), listOf(Speak(token, text, s.plan.speechRate)))
+        return Transition(s.copy(audioToken = token), listOf(Speak(token, text, s.plan.speechRate, cue)))
     }
 
     private fun Transition.withLeading(effect: LessonEffect) = copy(effects = listOf(effect) + effects)

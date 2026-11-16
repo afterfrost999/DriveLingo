@@ -1,5 +1,6 @@
 package com.drivelingo.feature.lesson.engine
 
+import com.drivelingo.core.audio.Earcon
 import com.drivelingo.core.curriculum.Level
 import com.drivelingo.core.curriculum.MockCurriculumRepository
 import com.drivelingo.core.driving.Interruption
@@ -138,7 +139,7 @@ class LessonEngineTest {
         val tokenBefore = h.state.audioToken
 
         val effects = h.send(InterruptionsChanged(setOf(Interruption.TURN_SIGNAL), nowMs = 1_000))
-        assertEquals(listOf(StopAudio), effects)
+        assertEquals(listOf(StopAudio, LessonEffect.PlayEarcon(Earcon.Pause)), effects)
         assertEquals(LessonPhase.PAUSED, h.state.phase)
         assertEquals(1, h.state.tally.pausesByReason[Interruption.TURN_SIGNAL])
         assertEquals(2, h.state.tally.combo)

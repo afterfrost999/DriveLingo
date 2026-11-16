@@ -1,5 +1,6 @@
 package com.drivelingo.feature.lesson.engine
 
+import com.drivelingo.core.audio.Earcon
 import com.drivelingo.core.curriculum.LessonPlan
 import com.drivelingo.core.driving.Interruption
 import com.drivelingo.core.driving.LearningMode
@@ -104,9 +105,15 @@ sealed interface LessonEvent {
 
 /** 엔진이 바깥(TTS·STT·AI·저장소)에 요청하는 일. 실행은 LessonSession 이 한다. */
 sealed interface LessonEffect {
-    data class Speak(val token: Int, val text: String, val rate: Float) : LessonEffect
-    /** [echoGuardMs] 만큼 기다린 뒤 마이크를 연다. TTS 꼬리 소리를 STT 가 다시 인식하지 않도록. */
-    data class Listen(val token: Int, val turn: Turn, val echoGuardMs: Long) : LessonEffect
+    /** [cue] 가 있으면 효과음을 먼저 내고 말한다. */
+    data class Speak(val token: Int, val text: String, val rate: Float, val cue: Earcon? = null) : LessonEffect
+    /**
+     * [cue](말할 차례 '띵')를 낸 뒤 [echoGuardMs] 만큼 기다리고 마이크를 연다.
+     * TTS 꼬리 소리나 효과음을 STT 가 다시 인식하지 않도록.
+     */
+    data class Listen(val token: Int, val turn: Turn, val echoGuardMs: Long, val cue: Earcon? = Earcon.YourTurn) : LessonEffect
+    /** 말 없이 효과음만 낸다(멈춤 '톡'). */
+    data class PlayEarcon(val earcon: Earcon) : LessonEffect
     data object StopAudio : LessonEffect
     data class RequestFeedback(val token: Int, val turn: Turn, val answer: String) : LessonEffect
     data object RequestAudioFocus : LessonEffect

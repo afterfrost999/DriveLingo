@@ -1,5 +1,6 @@
 package com.drivelingo.feature.lesson
 
+import com.drivelingo.core.audio.EarconPlayer
 import com.drivelingo.core.curriculum.CommuteType
 import com.drivelingo.core.curriculum.CurriculumRepository
 import com.drivelingo.core.curriculum.LessonPlan
@@ -37,6 +38,7 @@ class LessonController(
     private val drivingMonitor: DrivingMonitor,
     private val voiceOutput: VoiceOutput,
     private val voiceInput: VoiceInput,
+    private val earcons: EarconPlayer,
     private val coach: EnglishCoach,
     private val audioFocus: AudioFocusRequester,
     private val curriculum: CurriculumRepository,
@@ -71,6 +73,7 @@ class LessonController(
             drivingMonitor = drivingMonitor,
             voiceOutput = voiceOutput,
             voiceInput = voiceInput,
+            earcons = earcons,
             coach = coach,
             audioFocus = audioFocus,
             progress = progress,

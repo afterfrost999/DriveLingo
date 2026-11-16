@@ -81,6 +81,7 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
     val slowCoach by container.voiceSimulation.slowCoach.collectAsStateWithLifecycle()
     val speaking by container.voiceSimulation.nowSpeaking.collectAsStateWithLifecycle()
     val heard by container.voiceSimulation.lastHeard.collectAsStateWithLifecycle()
+    val earcon by container.voiceSimulation.lastEarcon.collectAsStateWithLifecycle()
     val s = status.signals
 
     BoxWithConstraints(modifier.fillMaxHeight()) {
@@ -120,6 +121,7 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 Info("음성", if (container.usesPleosVoice) "Pleos STT/TTS (실제 음성)" else "시뮬레이션 (소리 없음)")
                 Info("TTS", speaking ?: "-")
                 Info("STT 마지막", heard ?: "-")
+                Info("효과음 마지막", earcon ?: "-")
                 if (!container.usesMockVehicle) Info("car 모드", "실제: " + CarSignalMerger.REAL_SIGNALS.joinToString() + " · 나머지 Mock")
             }
 
