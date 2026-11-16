@@ -111,6 +111,11 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 Info("상황", "${status.situation.label} (원시: ${status.rawSituation.label})")
                 Info("학습 모드", status.mode.label)
                 Info(
+                    "보정",
+                    if (status.conditions.isEmpty()) "없음"
+                    else status.conditions.joinToString { it.label } + " → 한 단계 낮춤",
+                )
+                Info(
                     "CarUx",
                     s.uxRestrictions?.let { ux ->
                         if (!ux.requiresDistractionOptimization) "제한 없음"
@@ -129,6 +134,18 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
             Section("주행 상황 프리셋") {
                 DrivingPreset.entries.forEach { p ->
                     Chip(p.label, selected = p == preset) { mock.applyPreset(p) }
+                }
+            }
+
+            Section("날씨 · 도로 (상한 한 단계 낮춤)") {
+                Chip("비 (와이퍼)", selected = s.wipersOn == true) {
+                    mock.update { it.copy(wipersOn = if (it.wipersOn == true) false else true) }
+                }
+                Chip("야간 (전조등)", selected = s.headlampsOn == true) {
+                    mock.update { it.copy(headlampsOn = if (it.headlampsOn == true) false else true) }
+                }
+                Chip("초행길", selected = s.unfamiliarRoute) {
+                    mock.update { it.copy(unfamiliarRoute = !it.unfamiliarRoute) }
                 }
             }
 
