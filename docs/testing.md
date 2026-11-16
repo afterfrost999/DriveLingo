@@ -72,7 +72,9 @@ scripts/setup-pleos-emulator.sh        # VS Code: Tasks: Run Task → "말차: P
   Mac(Apple Silicon)은 `crp-arm64-sys-img.xml`, Windows/Linux는 `crp-sys-img.xml` 이미지를 씁니다.
 - 이미지는 약 4.7GB이고, **42dot SDK 라이선스 전문을 보여 준 뒤 동의해야** 설치합니다.
 - AVD 설정은 공식 가이드대로 맞춥니다. **Cold boot 강제**(Quick boot이면 VHAL을 못 씁니다), RAM 4GB, 하드웨어 그래픽, 마이크 입력을 켭니다.
-- 공식 권장 사양은 외장 GPU입니다(최소 RTX 3060 Laptop 6GB급). 사양이 부족하면 부팅이 느리거나 화면이 깨질 수 있습니다.
+- 화면은 이미지에 들어 있는 기기 정의 `Pleos_Connect_v2_0`(2560×1440, mdpi)으로 만듭니다. 일반 Automotive 기기(1024×768)로 만들면 홈·클러스터·공조 바가 겹쳐 화면이 깨집니다.
+- 내려받기가 멈추면 60초 뒤 끊고 이어 받습니다. 중간에 멈춰도 다시 실행하면 이어 받습니다.
+- 공식 권장 사양은 외장 GPU입니다(최소 RTX 3060 Laptop 6GB급). Apple M2(16GB)에서도 약 20초 만에 부팅되고 정상 동작했습니다(2026-11-16).
 - Android Studio로 설치해도 됩니다. 이때도 AVD 이름을 `Pleos_Connect_v2.1`로 하면 아래 명령을 그대로 쓸 수 있습니다.
 
 ### 2. car 모드로 실행하고 CarUxRestrictions 확인
@@ -82,16 +84,25 @@ AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car
 scripts/check-car-ux.sh                # VS Code: "말차: Pleos 에뮬레이터에서 CarUx 확인"
 ```
 
-`check-car-ux.sh`는 VHAL 값(`PERF_VEHICLE_SPEED`, `GEAR_SELECTION`, `PARKING_BRAKE_ON`)을 넣어 주차 → 정차 → 주행(60km/h) → 주차를 만듭니다.
-단계마다 플랫폼 상태(`dumpsys car_service`)와 앱이 받은 값(`logcat -s CarUxRestrictions`)을 나란히 보여 줍니다.
+`check-car-ux.sh`는 기어·속도를 바꿔 주차 → 정차 → 주행(60km/h) → 주차를 만들고, 단계마다 플랫폼 상태(`dumpsys car_service`)와 앱이 받은 값(`logcat -s CarUxRestrictions`)을 나란히 보여 줍니다.
 
-| 단계 | 기대 결과 |
-|---|---|
-| 주차 | 앱 로그 `requiresDO=false`, 화면 텍스트·설정 표시 |
-| 주행 60km/h | 앱 로그 `requiresDO=true active=511 [...]`, 화면에서 숫자·텍스트·설정 숨김, 콘솔 `CarUx: DO 필요` |
-| 다시 주차 | 제한 해제 |
+- Pleos Connect 이미지는 **user 빌드**라 `cmd car_service inject-vhal-event`가 막혀 있습니다(`requires non-user build`, root도 안 됨).
+  그래서 스크립트는 **Pleos Connect Virtual Console의 HTTP API**로 값을 넣습니다(`adb forward tcp:8088 tcp:8088` 후 `PUT /vehicle/gear?gear=Drive`, `PUT /vehicle/controls?speed=60`).
+  콘솔은 브라우저 세션이 살아 있을 때만 입력을 받아서, 스크립트가 확인하는 동안 세션 신호(`POST /browser/session`)를 1초마다 보냅니다.
+- 브라우저에서 http://127.0.0.1:8088/ 을 열어 손으로 바꿔도 결과는 같습니다. 일반 AAOS 에뮬레이터(userdebug)에서는 VHAL 주입을 씁니다.
 
-Pleos Connect Virtual Console로 속도·기어를 바꿔도 같은 결과가 나와야 합니다. 로그가 `unknown`이면 Car 서비스에 연결하지 못한 것입니다.
+Pleos Connect v2.1의 UX 제한 설정(`dumpsys car_service --services CarUxRestrictionsManagerService`)은 아래와 같습니다.
+일반 AAOS 기본값(주행 중 `FULLY_RESTRICTED`=511)과 달리 **정차·주행 모두 `NO_VIDEO|NO_SETUP`(0x50=80)** 입니다.
+앱은 개별 플래그가 아니라 `requiresDistractionOptimization`으로 화면을 제한하므로 결과는 같습니다.
+
+| 단계 | 플랫폼 주행 상태 | 기대 결과 (2026-11-16 확인) |
+|---|---|---|
+| 주차 (P, 0km/h) | PARKED(0) | `requiresDO=false active=0`, 화면 텍스트·설정 표시 |
+| 정차 (D, 0km/h) | IDLING(1) | `requiresDO=true active=80 [NO_VIDEO, NO_SETUP]`, "주차 후 이어서 할게요" 화면 |
+| 주행 (D, 60km/h) | MOVING(2) | 정차와 같은 값이라 앱 로그는 새로 찍히지 않음(변화 없음) |
+| 다시 주차 | PARKED(0) | `requiresDO=false active=0`, 제한 해제 |
+
+로그가 `unknown`이면 Car 서비스에 연결하지 못한 것입니다.
 이때 앱은 안전 제한 모드로 동작합니다. 일반 에뮬레이터이거나 cold boot가 아닌 경우를 의심하세요.
 
 ### 3. 실제 신호·음성·미디어 버튼 확인 (미검증 항목 체크리스트)
@@ -103,11 +114,11 @@ adb logcat -s CarUxRestrictions CarProperty PleosVehicle AudioFocus PleosTts Ple
 
 | 확인할 것 | 방법 | 기대 결과 |
 |---|---|---|
-| 속도 권한 | 첫 실행 | 차량 속도 권한 요청이 뜨고, 허용하면 `CarProperty: PERF_VEHICLE_SPEED subscribed=true` |
+| 속도 권한 | 첫 실행 | 차량 속도 권한 요청이 "위치 정보 액세스"로 뜹니다(AAOS에서 `CAR_SPEED`는 위치 권한 그룹). 허용하면 `CarProperty: PERF_VEHICLE_SPEED subscribed=true`. adb로 줄 때는 앱이 도는 사용자(보통 10)를 지정합니다: `adb shell pm grant --user $(adb shell am get-current-user) com.drivelingo android.car.permission.CAR_SPEED` |
 | Vehicle SDK 지원 여부 | 실행 직후 로그 | `turn signal / brake pedal / telltales supported (READ...)`. 지원하지 않으면 "treated as unknown" |
-| 방향지시등 | Virtual Console에서 지시등 켜기 | 수업이 즉시 멈추고, 끄면 이어서 함 |
+| 방향지시등 | Virtual Console에서 지시등 켜기(`PUT /vehicle/turn-signal?mode=BlinkLeft`) | 수업이 즉시 멈추고, 끄면 이어서 함. 시뮬레이터 패널 `중단 사유`에 방향지시등(확인함). Pleos가 측후방 카메라 창을 함께 띄웁니다 |
 | 급제동 | Virtual Console에서 속도를 빠르게 낮추며 브레이크 | 1초 중단 |
-| 경고등 | Virtual Console에서 경고등(예: ABS) 켜기 | 5초 중단 후 켜져 있어도 재개 |
+| 경고등 | Virtual Console에서 경고등 켜기(`PUT /vehicle/telltales/simulator?type=MasterWarning&state=On&color=Red`) | 5초 중단 후 켜져 있어도 재개. `중단 사유`에 차량 경고(확인함) |
 | 속도·기어 | `scripts/check-car-ux.sh` 또는 Virtual Console | 시뮬레이터 패널 `속도·기어`가 실제 값으로 바뀜 |
 | 실제 음성 | 주차 중 수업 시작 | TTS가 실제로 들리고, 말할 차례에 마이크가 열려 인식 결과가 `STT 마지막`에 표시 |
 | TTS와 포커스 | 수업 중 `AudioFocus` 로그 | 코치가 말할 때 `focus change ... LOST_TRANSIENT`가 **나오지 않아야** 합니다. 나오면 `docs/pleos-sdk-status.md` 4장 1번 |

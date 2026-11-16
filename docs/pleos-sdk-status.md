@@ -40,12 +40,12 @@ BuildConfig에 들어가므로 **배포 빌드에서는 쓰지 말고** 백엔�
 
 | 앱이 쓰는 신호 | 실제 출처 | 필요 권한 | 상태 | 코드 |
 |---|---|---|---|---|
-| 주행 규제 | `CarUxRestrictionsManager.registerListener` | 없음 | **실연동** | `core/vehicle/car/CarUxRestrictionsReader.kt` |
-| 속도 | `CarPropertyManager` `PERF_VEHICLE_SPEED` (m/s → km/h) | `android.car.permission.CAR_SPEED` (**런타임 권한**, 앱이 요청) | **실연동** | `core/vehicle/car/CarPropertyReader.kt` |
-| 기어 | `CarPropertyManager` `GEAR_SELECTION` | `android.car.permission.CAR_POWERTRAIN` | **실연동** | 같음 |
-| 방향지시등 | Vehicle SDK `TurnSignal.registerTurnSignalState` | `pleos.car.permission.CAR_LIGHTS` | **실연동** | `core/vehicle/car/PleosVehicleReader.kt` |
+| 주행 규제 | `CarUxRestrictionsManager.registerListener` | 없음 | **실연동 · 에뮬레이터 확인** | `core/vehicle/car/CarUxRestrictionsReader.kt` |
+| 속도 | `CarPropertyManager` `PERF_VEHICLE_SPEED` (m/s → km/h) | `android.car.permission.CAR_SPEED` (**런타임 권한**, 앱이 요청) | **실연동 · 에뮬레이터 확인** | `core/vehicle/car/CarPropertyReader.kt` |
+| 기어 | `CarPropertyManager` `GEAR_SELECTION` | `android.car.permission.CAR_POWERTRAIN` | **실연동 · 에뮬레이터 확인** | 같음 |
+| 방향지시등 | Vehicle SDK `TurnSignal.registerTurnSignalState` | `pleos.car.permission.CAR_LIGHTS` | **실연동 · 에뮬레이터 확인** | `core/vehicle/car/PleosVehicleReader.kt` |
 | 브레이크 페달 | Vehicle SDK `Brake.registerBrakePedalStatus` | `pleos.car.permission.CAR_DRIVE` | **실연동** (급제동 판단에 사용) | 같음 |
-| 차량 경고 | Vehicle SDK `Safety.registerTelltales` | `pleos.car.permission.CAR_SAFETY` | **실연동** | 같음 |
+| 차량 경고 | Vehicle SDK `Safety.registerTelltales` | `pleos.car.permission.CAR_SAFETY` + `PRIVATE_CAR_SAFETY` (capability 확인·등록에 필요) | **실연동 · 에뮬레이터 확인** | 같음 |
 | 급제동 | **전용 API를 문서에서 찾지 못함.** 감속도 ≥ 13km/h/s + 브레이크 페달(모르면 밟음으로 봄) | (속도·CAR_DRIVE) | **추정** | `core/driving/VehicleEvents.kt` `SuddenBrakingDetector` |
 | 출발 후 경과 | 기어가 P에서 바뀐 시각 | (기어) | **추정** | `DepartureTracker` |
 | 오디오 포커스 | `AudioManager.requestAudioFocus(AudioFocusRequest)` | 없음 | **실연동** | `core/audio/AudioFocusController.kt` |
@@ -80,9 +80,16 @@ Vehicle SDK는 차종마다 지원 범위가 다릅니다. 그래서 등록 전�
 중단 사유로 보는 경고등은 `MASTER_WARNING`, `FCA`, `DRIVER_ATTENTION`, `AIRBAG`, `ABS`, `ENGINE_OIL_PRESSURE`, `ENGINE_TEMPERATURE`, `EV/HEV/FCEV/EREV_SYSTEM`, `POWER_DOWN`, `H2_LEAK`입니다.
 `ESC`는 깜빡일 때(자세 제어 개입 중)만 봅니다. 목록은 Pleos와 협의해 조정해야 합니다.
 
-## 4. 검증이 필요한 것 (Pleos Connect 에뮬레이터·실차)
+## 4. 에뮬레이터에서 확인한 것 (Pleos Connect v2.1, 2026-11-16)
 
-이번 작업에서는 일반 JVM 단위 테스트와 빌드만 확인했습니다. 아래 항목은 Pleos Connect 에뮬레이터에서 아직 돌려 보지 않았습니다.
+- CarUxRestrictions: 주차 → 정차 → 주행 → 주차에서 플랫폼 값과 앱 수신 값이 일치했습니다. Pleos v2.1은 정차·주행 모두 `NO_VIDEO|NO_SETUP`(80)이고, 앱은 `requiresDO`로 제한하므로 문제없습니다(`docs/testing.md`).
+- 속도·기어(CarPropertyManager), 방향지시등·브레이크 페달·경고등(Vehicle SDK)이 모두 READ 지원으로 잡히고, 방향지시등·경고등이 시뮬레이터 패널 `중단 사유`에 반영됐습니다.
+- 경고등은 처음에 `checkTelltalesCapabilities need Permission`으로 실패했습니다. SDK 2.3.2가 capability 확인·등록에 `PRIVATE_CAR_SAFETY`를 요구해서 매니페스트에 추가했습니다. 이 퍼미션도 Pleos App Market 승인 범위에 넣어야 합니다.
+- 값 입력: Pleos 이미지는 user 빌드라 VHAL 주입이 막혀 있어 Virtual Console HTTP API를 씁니다.
+
+## 5. 아직 검증이 필요한 것 (Pleos Connect 에뮬레이터·실차)
+
+아래 항목은 아직 돌려 보지 않았습니다.
 
 1. **Pleos TTS 재생이 앱의 오디오 포커스를 가져가는지.** TTS는 Pleos 음성 서비스(CAAS) 프로세스가 재생합니다. 그 서비스가 따로 포커스를 요청하면 앱이 `LOSS_TRANSIENT`를 받아 자기 말에 스스로 멈출 수 있습니다. 그렇다면 `TextToSpeech.setAudioAttributes()`로 용도를 맞추거나, TTS 재생 중의 포커스 상실은 무시하도록 바꿔야 합니다.
 2. ON_DEVICE 모드 STT/TTS의 영어(en-US) 지원 여부. `UNAVAILABLE_LANGUAGE`가 오면 앱 등록(HYBRID)이 필요합니다.
@@ -91,7 +98,7 @@ Vehicle SDK는 차종마다 지원 범위가 다릅니다. 그래서 등록 전�
 5. 다른 앱의 재생 용도(`AudioPlaybackConfiguration.getAudioAttributes()`)가 Pleos 내비 안내에서 `USAGE_ASSISTANCE_NAVIGATION_GUIDANCE`로 보이는지.
 6. 급제동 임계값(13km/h/s), 경고 유지 시간(5초)은 실제 주행 데이터로 조정해야 합니다.
 
-## 5. 교체 지점
+## 6. 교체 지점
 
 모든 교체는 `app/AppContainer.kt`에서 합니다.
 
