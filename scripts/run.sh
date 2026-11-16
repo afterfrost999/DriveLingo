@@ -18,7 +18,8 @@ if ! "$ADB" devices | grep -qE "^emulator-|\s(device|offline)$" && ! pgrep -f "e
     exit 1
   fi
   echo "에뮬레이터 시작: $AVD"
-  nohup "$EMULATOR" -avd "$AVD" >/dev/null 2>&1 &
+  # -allow-host-audio: 없으면 에뮬레이터가 마이크 입력을 0으로 채워 STT(음성 인식)가 아무것도 듣지 못한다.
+  nohup "$EMULATOR" -avd "$AVD" -allow-host-audio >/dev/null 2>&1 &
 fi
 
 echo "부팅 대기 중... (최대 5분)"
