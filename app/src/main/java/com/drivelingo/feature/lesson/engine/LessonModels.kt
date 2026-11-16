@@ -6,6 +6,7 @@ import com.drivelingo.core.driving.Interruption
 import com.drivelingo.core.driving.LearningMode
 import com.drivelingo.core.progress.Correction
 import com.drivelingo.core.progress.LessonTally
+import com.drivelingo.core.speech.command.VoiceCommand
 
 /** 한 턴에서 학습자가 하는 활동. 같은 아이템도 운전 상황에 따라 활동이 달라진다. */
 enum class ActivityType { LISTEN, REPEAT, SHORT_ANSWER, LONG_ANSWER, DETAILED_REVIEW }
@@ -76,6 +77,12 @@ data class LessonState(
      */
     val audioToken: Int = 0,
     val tally: LessonTally = LessonTally(),
+    /** 말 속도 단계. 0 = 수업 기본 속도, 클수록 느리게("천천히" 명령). */
+    val rateStep: Int = 0,
+    /** "듣기만 할게": 이번 수업은 마이크를 쓰지 않는다(동승자). */
+    val listenOnly: Boolean = false,
+    /** 이번 턴에서 받은 음성 명령 수. 잡음이 명령으로 계속 잡혀 같은 턴에 갇히지 않도록 센다. */
+    val commandsThisTurn: Int = 0,
 ) {
     val activeInterruptions: Set<Interruption>
         get() = if (userPaused) signalInterruptions + Interruption.USER_PAUSE else signalInterruptions
@@ -100,6 +107,8 @@ sealed interface LessonEvent {
     data object UserPause : LessonEvent
     data class UserResume(val nowMs: Long) : LessonEvent
     data object Repeat : LessonEvent
+    /** 운전대·화면에서 온 명령(예: 운전대 "다음"). 음성 명령은 [AnswerRecognized] 안에서 엔진이 직접 알아듣는다. */
+    data class Command(val command: VoiceCommand) : LessonEvent
     data object Stop : LessonEvent
 }
 

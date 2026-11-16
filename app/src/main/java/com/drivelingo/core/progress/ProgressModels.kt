@@ -31,6 +31,8 @@ data class LessonTally(
     val pausesByReason: Map<Interruption, Int> = emptyMap(),
     val corrections: List<Correction> = emptyList(),
     val coachFallbacks: Int = 0,
+    /** "듣기만 할게"로 진행한 수업. 스트릭은 인정하고 구간 점수(말한 양)는 올리지 않는다. */
+    val listenOnly: Boolean = false,
 )
 
 @Serializable
