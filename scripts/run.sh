@@ -32,6 +32,11 @@ if [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1
   exit 1
 fi
 
+# 호스트(Mac) 마이크를 에뮬레이터에 연결한다. -allow-host-audio 만으로는 꺼진 채 시작할 수 있고(입력이 무음),
+# 에뮬레이터 창의 Extended controls > Microphone 설정과 같다. 재부팅하면 풀리므로 매번 켠다.
+# macOS 마이크 권한은 에뮬레이터를 띄운 앱(터미널·VS Code)에 줘야 한다.
+"$ADB" emu avd hostmicon >/dev/null 2>&1 || echo "호스트 마이크 연결 실패: 에뮬레이터 창 ⋯ > Microphone 에서 켜 주세요." >&2
+
 echo "빌드·설치"
 ./gradlew installDebug "$@" --console=plain -q
 
