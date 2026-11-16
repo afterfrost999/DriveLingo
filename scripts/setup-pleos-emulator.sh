@@ -93,9 +93,12 @@ else
   mv "$SRC" "$IMG_DIR"
   rm -rf "$TMP"
 
-  # Android Studio 로 설치하면 생기는 package.xml 이 없으면 avdmanager 가 이미지를 찾지 못한다.
-  if [ ! -f "$IMG_DIR/package.xml" ] && [ ! -f "$IMG_DIR/source.properties" ]; then
-    python3 -I - "$MANIFEST" "$IMG_DIR/package.xml" <<'PY'
+fi
+
+# 압축 안의 package.xml 은 경로가 'android-automotive' 로 되어 있어 설치 위치(pleos_car_emulator)와 맞지 않는다.
+# 그러면 avdmanager 가 "Package path is not valid" 로 AVD 를 만들지 못한다.
+# Android Studio 가 설치할 때처럼 이미지 정보(manifest)로 package.xml 을 항상 다시 쓴다.
+python3 -I - "$MANIFEST" "$IMG_DIR/package.xml" <<'PY'
 import sys, xml.etree.ElementTree as ET
 src = ET.parse(sys.argv[1]).getroot().find('remotePackage')
 d = src.find('type-details')
@@ -111,8 +114,6 @@ xml = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 '''
 open(sys.argv[2], 'w').write(xml)
 PY
-  fi
-fi
 
 if "$SDK/emulator/emulator" -list-avds 2>/dev/null | grep -qx "$AVD"; then
   echo "AVD 가 이미 있습니다: $AVD"
