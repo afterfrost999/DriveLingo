@@ -22,13 +22,13 @@
 
 | gradle 속성 | 값 | 바뀌는 것 |
 |---|---|---|
-| `drivelingo.vehicleSource` | `mock`(기본) / `car` | 차량 신호와 오디오 포커스. `car`이면 아래 표의 "실연동" 신호를 실제 소스에서 읽습니다 |
-| `drivelingo.voiceSource` | `simulated`(기본) / `pleos` | 음성. `pleos`이면 Pleos STT/TTS로 실제 소리를 내고 듣습니다 |
+| `drivelingo.vehicleSource` | `car`(기본) / `mock` | 차량 신호와 오디오 포커스. `car`이면 아래 표의 "실연동" 신호를 실제 소스에서 읽습니다. `mock`은 Pleos 서비스가 없는 일반 에뮬레이터·CI용 |
+| `drivelingo.voiceSource` | `pleos`(기본) / `simulated` | 음성. `pleos`이면 Pleos STT/TTS로 실제 소리를 내고 듣습니다. `simulated`는 소리 없는 대체 경로 |
 | `drivelingo.pleosClientId` / `drivelingo.pleosClientSecret` | 빈 값(기본) | 있으면 STT/TTS를 `HYBRID` + `registerApp()`으로, 없으면 `ON_DEVICE`로 씁니다 |
 
 ```bash
 # Pleos Connect 에뮬레이터에서 실제 신호 + 실제 음성
-AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
+AVD=Pleos_Connect_v2.1 scripts/run.sh   # 기본 빌드가 Pleos 실연동
 ```
 
 앱 등록 정보는 저장소에 넣지 않습니다. 로컬에서는 `~/.gradle/gradle.properties`에 두거나 `-P`로 넘깁니다.

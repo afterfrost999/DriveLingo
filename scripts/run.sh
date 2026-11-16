@@ -1,7 +1,7 @@
 #!/bin/bash
 # 에뮬레이터가 없으면 켜고, 부팅을 기다린 뒤 디버그 앱을 설치·실행한다.
-# 사용: scripts/run.sh [gradle 옵션...]   예) scripts/run.sh -Pdrivelingo.vehicleSource=car
-#      Pleos 실연동: AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
+# 사용: AVD=Pleos_Connect_v2.1 scripts/run.sh            (기본: Pleos 실연동 빌드)
+#      scripts/run.sh -Pdrivelingo.vehicleSource=mock -Pdrivelingo.voiceSource=simulated   (일반 에뮬레이터용 Mock 대체 빌드)
 # AVD 지정: AVD=U_Pixel_2_ scripts/run.sh   (기본: 첫 번째 AVD)
 set -euo pipefail
 

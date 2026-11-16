@@ -2,35 +2,31 @@
 
 출퇴근길 10분 동안 차 안에서 하는 영어 말하기 수업입니다.
 
-Jetpack Compose로 만든 프로토타입입니다. 기본 빌드는 일반 Android 기기·에뮬레이터에서 Mock 차량 신호와 소리 없는 음성 시뮬레이션으로 동작합니다.
-빌드 옵션을 켜면 Pleos Connect(AAOS)에서 실제 차량 신호(CarUxRestrictions, 속도·기어, 방향지시등·브레이크·경고등, 오디오 포커스)와
-Pleos STT/TTS 실제 음성을 씁니다. 수업은 MediaSession으로 노출되어 운전대 재생·일시정지 버튼으로도 조작할 수 있습니다.
-**실연동 코드는 빌드와 단위 테스트까지만 확인했고, Pleos Connect 에뮬레이터에서는 아직 실행해 보지 않았습니다**([검증 필요](#검증-필요)).
-백엔드와 AI 코치는 아직 Mock입니다.
+Pleos Connect(현대차그룹 AAOS 인포테인먼트) 앱입니다. Jetpack Compose로 만들었습니다.
+**기본 빌드가 Pleos 실연동 빌드**입니다. 실제 차량 신호(CarUxRestrictions, 속도·기어, 방향지시등·브레이크·경고등, 와이퍼·전조등, 오디오 포커스)와
+Pleos STT/TTS 실제 음성을 쓰고, 수업은 MediaSession으로 노출되어 운전대 버튼으로도 조작합니다.
+Pleos Connect v2.1 에뮬레이터에서 동작을 확인했습니다(`plan.md`, `docs/pleos-sdk-status.md`). 백엔드와 AI 코치는 아직 Mock입니다.
 
 ## 실행
 
-요구 환경: JDK 17 이상(21에서 검증), Android SDK 35.
+요구 환경: JDK 17, Android SDK 35(platform 35, build-tools 35.0.0), Pleos Connect v2.1 에뮬레이터. SDK 위치는 `local.properties`의 `sdk.dir`.
 
 ```bash
-./gradlew :app:testDebugUnitTest     # 단위 테스트 128개
-./gradlew assembleDebug              # app/build/outputs/apk/debug/app-debug.apk (차량 시뮬레이터 포함)
-./gradlew assembleRelease            # app/build/outputs/apk/release/app-release.apk (시뮬레이터 없음, debug 키 서명)
-./gradlew installDebug               # 실행 중인 에뮬레이터·기기에 설치
+scripts/setup-pleos-emulator.sh      # 처음 한 번: Pleos Connect v2.1 AVD 설치 (라이선스 동의 필요, 약 4.7GB)
+AVD=Pleos_Connect_v2.1 scripts/run.sh   # 에뮬레이터 켜기(마이크 입력 포함) → 빌드·설치 → 실행
+scripts/check-car-ux.sh              # 주차 ↔ 주행에 따라 CarUxRestrictions 가 바뀌는지 확인
+./gradlew :app:testDebugUnitTest     # 단위 테스트 129개
+./gradlew assembleRelease            # 시뮬레이터 없는 빌드 (debug 키 서명)
 ```
 
-- **VS Code**: `Cmd+Shift+B`(기본 빌드 작업 "말차: 에뮬레이터에서 실행")를 누르면 에뮬레이터 켜기 → 설치 → 실행을 한 번에 합니다.
-  다른 작업(차량 모드 실행, 단위 테스트, 로그 보기)은 `Cmd+Shift+P` → `Tasks: Run Task`에서 고릅니다. 터미널에서는 `scripts/run.sh`로 실행합니다.
-- `./gradlew installDebug`는 이미 켜져 있는 에뮬레이터나 기기에 **설치만** 합니다. 에뮬레이터가 없으면 `No connected devices!`로 실패합니다.
-- 차량 신호는 앱 안의 차량 시뮬레이터(디버그 빌드 화면 오른쪽의 자동차 버튼)나 adb로 바꿉니다(`docs/testing.md`).
-- **Pleos Connect 실연동** (미검증, `docs/pleos-sdk-status.md`):
+- 차량 값은 Pleos Connect Virtual Console(`adb forward tcp:8088 tcp:8088` 후 http://127.0.0.1:8088)이나 adb로 바꿉니다(`docs/testing.md`).
+- 디버그 빌드 화면 오른쪽의 자동차 버튼을 누르면 차량 시뮬레이터가 열립니다. 판단 결과를 보고, 아직 실제 소스가 없는 신호(도착 시간·다음 회전, 시동, 네트워크, 초행길)와 음성 명령 문장을 넣을 수 있습니다.
+- **Pleos 서비스가 없는 환경용 대체 빌드**: 일반 Android 에뮬레이터나 CI에서는 차량 신호와 음성을 Mock으로 바꿉니다.
   ```bash
-  scripts/setup-pleos-emulator.sh      # Pleos Connect v2.1 AVD 설치 (라이선스 동의 필요, 약 4.7GB)
-  AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
-  scripts/check-car-ux.sh              # 주차 ↔ 주행에 따라 CarUxRestrictions 가 바뀌는지 확인
+  scripts/run.sh -Pdrivelingo.vehicleSource=mock -Pdrivelingo.voiceSource=simulated
   ```
-  `vehicleSource=car`는 차량 신호와 오디오 포커스를, `voiceSource=pleos`는 STT/TTS를 실제로 바꿉니다. 둘은 따로 켤 수 있습니다.
-  도착 시간·다음 회전(NaviHelper), 시동, 네트워크는 car 모드에서도 시뮬레이터에서 넣습니다.
+  `voiceSource=simulated`는 소리 없이 시간만 흐르고, 인식 실패·무응답을 강제로 재현할 수 있습니다.
+- **VS Code**: `Cmd+Shift+B`(기본 빌드 작업)로 에뮬레이터 켜기 → 설치 → 실행을 한 번에 합니다. 다른 작업은 `Cmd+Shift+P` → `Tasks: Run Task`.
 
 ## 문서
 

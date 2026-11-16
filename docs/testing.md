@@ -95,7 +95,7 @@ scripts/setup-pleos-emulator.sh        # VS Code: Tasks: Run Task → "말차: P
 ### 2. car 모드로 실행하고 CarUxRestrictions 확인
 
 ```bash
-AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car
+AVD=Pleos_Connect_v2.1 scripts/run.sh
 scripts/check-car-ux.sh                # VS Code: "말차: Pleos 에뮬레이터에서 CarUx 확인"
 ```
 
@@ -123,7 +123,7 @@ Pleos Connect v2.1의 UX 제한 설정(`dumpsys car_service --services CarUxRest
 ### 3. 실제 신호·음성·미디어 버튼 확인 (미검증 항목 체크리스트)
 
 ```bash
-AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
+AVD=Pleos_Connect_v2.1 scripts/run.sh
 adb logcat -s CarUxRestrictions CarProperty PleosVehicle AudioFocus PleosTts PleosStt LessonMedia
 ```
 
