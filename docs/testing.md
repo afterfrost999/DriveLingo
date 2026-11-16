@@ -123,8 +123,9 @@ adb logcat -s CarUxRestrictions CarProperty PleosVehicle AudioFocus PleosTts Ple
 | 급제동 | Virtual Console에서 속도를 빠르게 낮추며 브레이크 | 1초 중단 |
 | 경고등 | Virtual Console에서 경고등 켜기(`PUT /vehicle/telltales/simulator?type=MasterWarning&state=On&color=Red`) | 5초 중단 후 켜져 있어도 재개. `중단 사유`에 차량 경고(확인함) |
 | 속도·기어 | `scripts/check-car-ux.sh` 또는 Virtual Console | 시뮬레이터 패널 `속도·기어`가 실제 값으로 바뀜 |
-| 실제 음성 | 주차 중 수업 시작 | TTS가 실제로 들리고, 말할 차례에 마이크가 열려 인식 결과가 `STT 마지막`에 표시 |
-| TTS와 포커스 | 수업 중 `AudioFocus` 로그 | 코치가 말할 때 `focus change ... LOST_TRANSIENT`가 **나오지 않아야** 합니다. 나오면 `docs/pleos-sdk-status.md` 4장 1번 |
+| 실제 음성 | 주차 중 수업 시작 | TTS가 실제로 들리고(확인함), 말할 차례에 마이크가 열려 인식 결과가 `STT 마지막`에 표시 |
+| 마이크 입력 | 에뮬레이터를 `-allow-host-audio`로 켜기(`scripts/run.sh`가 붙임) | 이 옵션이 없으면 에뮬레이터가 마이크 입력을 0으로 채워 STT가 아무것도 듣지 못합니다. macOS에서 에뮬레이터를 띄운 앱(터미널·VS Code)에 마이크 권한이 있어야 합니다(시스템 설정 → 개인정보 보호 및 보안 → 마이크) |
+| TTS와 포커스 | 수업 중 `AudioFocus` 로그 | 코치가 말할 때 `focus change ... LOST_TRANSIENT`가 **나오지 않아야** 합니다(에뮬레이터 확인함). 나오면 TTS 재생 중의 포커스 상실을 무시하도록 바꿔야 합니다 |
 | 내비 안내 | 내비 경로 안내 중 음성 안내 | 안내 동안 멈춤 |
 | 운전대 키 | 아래 adb 명령 또는 에뮬레이터 미디어 키 | 일시정지·재개·다시 듣기 |
 

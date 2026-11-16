@@ -86,13 +86,18 @@ Vehicle SDK는 차종마다 지원 범위가 다릅니다. 그래서 등록 전�
 - 속도·기어(CarPropertyManager), 방향지시등·브레이크 페달·경고등(Vehicle SDK)이 모두 READ 지원으로 잡히고, 방향지시등·경고등이 시뮬레이터 패널 `중단 사유`에 반영됐습니다.
 - 경고등은 처음에 `checkTelltalesCapabilities need Permission`으로 실패했습니다. SDK 2.3.2가 capability 확인·등록에 `PRIVATE_CAR_SAFETY`를 요구해서 매니페스트에 추가했습니다. 이 퍼미션도 Pleos App Market 승인 범위에 넣어야 합니다.
 - 값 입력: Pleos 이미지는 user 빌드라 VHAL 주입이 막혀 있어 Virtual Console HTTP API를 씁니다.
+- 음성(`voiceSource=pleos`, 앱 등록 정보 없이 ON_DEVICE):
+  - 처음에는 앱이 시작하자마자 죽었습니다. SDK 생성 직후 `addEventListener`/`addListener`를 부르면 내부 서비스 연결 전이라 `UninitializedPropertyAccessException`이 납니다. 리스너를 `initialize` 성공 뒤에 등록하도록 고쳤습니다.
+  - TTS: en-US 문장을 On-device 엔진(GAAS)이 합성해 재생하고 `onReady → onStart → onDone`이 옵니다. 수업이 다음 단계로 넘어갑니다.
+  - TTS와 오디오 포커스: 재생 중 포커스 요청은 앱의 것(`USAGE_MEDIA`) 하나뿐이고, Pleos 음성 서비스가 따로 포커스를 가져가지 않았습니다. 코치가 자기 말에 멈추는 문제는 없습니다.
+  - STT: `request()` 후 en-US 엔진이 마이크(16kHz)를 열고, 말이 없으면 20초에 앱이 멈춰 무응답 → 다시 묻기로 넘어갑니다. 말이 없을 때 SDK가 스스로 끝(`onEndedRecognition`·TIMEOUT)을 알리지는 않았습니다.
 
 ## 5. 아직 검증이 필요한 것 (Pleos Connect 에뮬레이터·실차)
 
 아래 항목은 아직 돌려 보지 않았습니다.
 
-1. **Pleos TTS 재생이 앱의 오디오 포커스를 가져가는지.** TTS는 Pleos 음성 서비스(CAAS) 프로세스가 재생합니다. 그 서비스가 따로 포커스를 요청하면 앱이 `LOSS_TRANSIENT`를 받아 자기 말에 스스로 멈출 수 있습니다. 그렇다면 `TextToSpeech.setAudioAttributes()`로 용도를 맞추거나, TTS 재생 중의 포커스 상실은 무시하도록 바꿔야 합니다.
-2. ON_DEVICE 모드 STT/TTS의 영어(en-US) 지원 여부. `UNAVAILABLE_LANGUAGE`가 오면 앱 등록(HYBRID)이 필요합니다.
+1. ~~Pleos TTS 재생이 앱의 오디오 포커스를 가져가는지~~ → 에뮬레이터에서 가져가지 않음을 확인(4장). 실차에서 한 번 더 확인합니다.
+2. ON_DEVICE 모드 영어(en-US): TTS는 확인. STT는 엔진이 en-US로 열리는 것까지 확인했고, **실제 영어 발화의 인식 결과는 아직 확인하지 못했습니다**(에뮬레이터 마이크 입력 필요, `docs/testing.md`).
 3. STT `onUpdated(text, completed=true)`가 누적 문장으로 오는지 구간별로 오는지. 두 경우 모두 처리하도록 짰습니다.
 4. TTS 속도: SDK에 속도 API가 없어서 퇴근 복습 감속(`speechRate`)은 실제 음성에 아직 적용하지 않았습니다.
 5. 다른 앱의 재생 용도(`AudioPlaybackConfiguration.getAudioAttributes()`)가 Pleos 내비 안내에서 `USAGE_ASSISTANCE_NAVIGATION_GUIDANCE`로 보이는지.
