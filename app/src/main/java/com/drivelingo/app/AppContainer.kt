@@ -12,6 +12,7 @@ import com.drivelingo.core.curriculum.MockCurriculumRepository
 import com.drivelingo.core.driving.DrivingMonitor
 import com.drivelingo.core.progress.ProgressRepository
 import com.drivelingo.core.progress.SharedPrefsStore
+import com.drivelingo.core.speech.DebugPhraseVoiceInput
 import com.drivelingo.core.speech.SimulatedEarconPlayer
 import com.drivelingo.core.speech.SimulatedVoiceInput
 import com.drivelingo.core.speech.SimulatedVoiceOutput
@@ -96,8 +97,13 @@ class AppContainer(context: Context) {
 
     val voiceOutput: VoiceOutput =
         if (usesPleosVoice) PleosVoiceOutput(context, pleosCredentials, voiceSimulation) else SimulatedVoiceOutput(voiceSimulation)
-    val voiceInput: VoiceInput =
-        if (usesPleosVoice) PleosVoiceInput(context, pleosCredentials, voiceSimulation) else SimulatedVoiceInput(voiceSimulation)
+    val voiceInput: VoiceInput = when {
+        // 디버그 빌드: 시뮬레이터·adb 로 정한 문장을 실제 STT 대신 넣을 수 있다(마이크 없이 음성 명령 시험).
+        usesPleosVoice && BuildConfig.SHOW_VEHICLE_CONSOLE ->
+            DebugPhraseVoiceInput(PleosVoiceInput(context, pleosCredentials, voiceSimulation), voiceSimulation)
+        usesPleosVoice -> PleosVoiceInput(context, pleosCredentials, voiceSimulation)
+        else -> SimulatedVoiceInput(voiceSimulation)
+    }
     /** 효과음. 음성 모드를 따른다(pleos: 실제 소리, 시뮬레이션: 소리 없이 시뮬레이터에 표시). */
     val earcons: EarconPlayer =
         if (usesPleosVoice) AudioTrackEarconPlayer(voiceSimulation) else SimulatedEarconPlayer(voiceSimulation)

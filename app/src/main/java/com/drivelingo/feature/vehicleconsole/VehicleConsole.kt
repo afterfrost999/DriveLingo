@@ -184,17 +184,18 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 }
             }
 
-            // 실제 음성(pleos) 모드에서는 인식 결과를 강제로 정할 수 없다.
+            // 인식 실패·무응답 강제는 시뮬레이션 음성에서만. 실제 음성(pleos)에서는 마이크로 직접 재현한다.
             if (!container.usesPleosVoice) {
                 Section("다음 음성 인식 (1회)") {
                     NextAnswer.entries.forEach { a ->
                         Chip(a.label, selected = a == nextAnswer) { container.voiceSimulation.nextAnswer.value = a }
                     }
                 }
-                Section("다음에 말할 음성 명령 (1회)") {
-                    COMMAND_SAMPLES.forEach { (label, phrase) ->
-                        Chip(label, selected = phrase == nextPhrase) { container.voiceSimulation.nextPhrase.value = phrase }
-                    }
+            }
+            // 음성 명령은 두 모드 모두에서 시험할 수 있다(pleos 에서는 실제 STT 대신 이 문장을 들은 것으로 한다).
+            Section("다음에 말할 음성 명령 (1회)") {
+                COMMAND_SAMPLES.forEach { (label, phrase) ->
+                    Chip(label, selected = phrase == nextPhrase) { container.voiceSimulation.nextPhrase.value = phrase }
                 }
             }
 
