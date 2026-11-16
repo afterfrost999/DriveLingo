@@ -88,4 +88,21 @@ class CarSignalMergerTest {
         assertEquals(AudioFocus.LOST_TRANSIENT, merged.audioFocus)
         assertTrue(merged.navVoiceGuidanceActive)
     }
+
+    @Test
+    fun `wipers and headlamps come from the vehicle, unknown stays unknown`() {
+        val noisyMock = mock.copy(wipersOn = true, headlampsOn = true, unfamiliarRoute = true)
+        val read = CarSignalMerger.merge(
+            noisyMock,
+            CarReadings(vehicle = PleosVehicleState(wipersOn = false, headlampsOn = true)),
+            DerivedEvents(),
+        )
+        assertEquals(false, read.wipersOn)
+        assertEquals(true, read.headlampsOn)
+        assertTrue(read.unfamiliarRoute) // 초행길은 내비 연동 전이라 Mock
+
+        val unknown = CarSignalMerger.merge(noisyMock, CarReadings(), DerivedEvents())
+        assertNull(unknown.wipersOn)
+        assertNull(unknown.headlampsOn)
+    }
 }

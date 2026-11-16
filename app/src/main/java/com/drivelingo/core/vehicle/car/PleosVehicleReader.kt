@@ -1,15 +1,21 @@
 package com.drivelingo.core.vehicle.car
 
 import ai.pleos.playground.vehicle.Vehicle
+import ai.pleos.playground.vehicle.api.model.area.WindowArea
 import ai.pleos.playground.vehicle.api.model.capability.AccessType
 import ai.pleos.playground.vehicle.api.model.capability.CapabilityConfig
 import ai.pleos.playground.vehicle.api.model.telltale.Telltales
 import ai.pleos.playground.vehicle.constant.area.TurnSignalValue
+import ai.pleos.playground.vehicle.constant.area.WindowValue
+import ai.pleos.playground.vehicle.constant.control.LightState
+import ai.pleos.playground.vehicle.constant.control.WiperState
 import ai.pleos.playground.vehicle.constant.telltale.TelltaleState
 import ai.pleos.playground.vehicle.constant.telltale.TelltaleType
 import ai.pleos.playground.vehicle.listener.BrakePedalStatusListener
+import ai.pleos.playground.vehicle.listener.LightStateListener
 import ai.pleos.playground.vehicle.listener.TelltaleInfoListener
 import ai.pleos.playground.vehicle.listener.TurnSignalStateListener
+import ai.pleos.playground.vehicle.listener.WiperStateListener
 import android.content.Context
 import android.util.Log
 import com.drivelingo.core.vehicle.TurnSignal
@@ -27,6 +33,10 @@ data class PleosVehicleState(
     val turnSignal: TurnSignal? = null,
     val brakePedalPressed: Boolean? = null,
     val warningTelltales: Set<String> = emptySet(),
+    /** 앞 와이퍼가 움직이는 중(비 보정). */
+    val wipersOn: Boolean? = null,
+    /** 로우빔 전조등 켜짐(야간 보정). 주간주행등은 false. */
+    val headlampsOn: Boolean? = null,
 )
 
 /**
@@ -37,6 +47,8 @@ data class PleosVehicleState(
  * | 방향지시등 | `TurnSignal.registerTurnSignalState` | `pleos.car.permission.CAR_LIGHTS` |
  * | 브레이크 페달 | `Brake.registerBrakePedalStatus` | `pleos.car.permission.CAR_DRIVE` |
  * | 경고등 | `Safety.registerTelltales` | `pleos.car.permission.CAR_SAFETY` + `PRIVATE_CAR_SAFETY` |
+ * | 앞 와이퍼 | `Wiper.registerWiperState(FRONT_WINDSHIELD)` | `pleos.car.permission.CAR_WINDOWS` |
+ * | 전조등(로우빔) | `Light.registerLowBeamLightState` | `pleos.car.permission.CAR_LIGHTS` |
  *
  * 차종마다 지원 범위가 다르므로 등록 전에 `checkXxxCapabilities` 로 읽기 가능 여부를 확인한다.
  * 지원하지 않거나 실패한 신호는 null 로 두고, 판단 로직이 안전한 쪽으로 해석한다.
@@ -121,7 +133,51 @@ class PleosVehicleReader(private val context: Context) {
             safety.registerTelltales(telltaleListener)
         }
 
+        // ---- 앞 와이퍼 (비 보정) ----
+        val wiper = vehicle.getWiper()
+        val front = WindowArea(WindowValue.FRONT_WINDSHIELD)
+        val wiperListener = object : WiperStateListener {
+            override fun onWiperStateUpdated(state: WiperState?) {
+                update { it.copy(wipersOn = state?.toWipersOn()) }
+            }
+
+            override fun onFailed(e: Exception) {
+                Log.w(TAG, "wiper failed", e)
+                update { it.copy(wipersOn = null) }
+            }
+        }
+        whenReadable("front wiper", { ok, fail -> wiper.checkWiperStateCapabilities({ config, _ -> ok(config) }, fail) }) {
+            wiper.getCurrentWiperState(
+                front,
+                { state -> update { it.copy(wipersOn = state?.toWipersOn()) } },
+                { e -> Log.w(TAG, "wiper initial read failed", e) },
+            )
+            wiper.registerWiperState(front, wiperListener)
+        }
+
+        // ---- 전조등 로우빔 (야간 보정) ----
+        val light = vehicle.getLight()
+        val lowBeamListener = object : LightStateListener {
+            override fun onLightStateUpdated(state: LightState?) {
+                update { it.copy(headlampsOn = state?.let { s -> s == LightState.ON }) }
+            }
+
+            override fun onFailed(e: Exception) {
+                Log.w(TAG, "low beam failed", e)
+                update { it.copy(headlampsOn = null) }
+            }
+        }
+        whenReadable("low beam", { ok, fail -> light.checkLowBeamLightStateCapabilities({ config, _ -> ok(config) }, fail) }) {
+            light.getCurrentLowBeamLightState(
+                { state -> update { it.copy(headlampsOn = state?.let { s -> s == LightState.ON }) } },
+                { e -> Log.w(TAG, "low beam initial read failed", e) },
+            )
+            light.registerLowBeamLightState(lowBeamListener)
+        }
+
         awaitClose {
+            runCatching { wiper.unregisterWiperState(front, wiperListener) }
+            runCatching { light.unregisterLowBeamLightState(lowBeamListener) }
             runCatching { turnSignal.unregisterTurnSignalState(turnListener) }
             runCatching { brake.unregisterBrakePedalStatus(brakeListener) }
             runCatching { safety.unregisterTelltales(telltaleListener) }
@@ -146,6 +202,13 @@ class PleosVehicleReader(private val context: Context) {
             },
             { e -> Log.w(TAG, "$name capability check failed; treated as unknown", e) },
         )
+    }
+
+    /** ON = 움직이는 중. OFF·정비 위치는 비가 아니다. 그 밖(OTHER)은 모름. */
+    private fun WiperState.toWipersOn(): Boolean? = when (this) {
+        WiperState.ON -> true
+        WiperState.OFF, WiperState.SERVICE -> false
+        else -> null
     }
 
     private fun TurnSignalValue.toModel(): TurnSignal = when (this) {
