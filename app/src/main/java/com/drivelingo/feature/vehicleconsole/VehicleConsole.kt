@@ -78,6 +78,7 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
     val status by container.drivingMonitor.status.collectAsStateWithLifecycle()
     val preset by mock.preset.collectAsStateWithLifecycle()
     val nextAnswer by container.voiceSimulation.nextAnswer.collectAsStateWithLifecycle()
+    val nextPhrase by container.voiceSimulation.nextPhrase.collectAsStateWithLifecycle()
     val slowCoach by container.voiceSimulation.slowCoach.collectAsStateWithLifecycle()
     val speaking by container.voiceSimulation.nowSpeaking.collectAsStateWithLifecycle()
     val heard by container.voiceSimulation.lastHeard.collectAsStateWithLifecycle()
@@ -173,6 +174,11 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                         Chip(a.label, selected = a == nextAnswer) { container.voiceSimulation.nextAnswer.value = a }
                     }
                 }
+                Section("다음에 말할 음성 명령 (1회)") {
+                    COMMAND_SAMPLES.forEach { (label, phrase) ->
+                        Chip(label, selected = phrase == nextPhrase) { container.voiceSimulation.nextPhrase.value = phrase }
+                    }
+                }
             }
 
             Text(
@@ -183,6 +189,19 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
         }
     }
 }
+
+/** 시뮬레이터에서 고를 수 있는 음성 명령 예시(라벨 → 인식될 문장). 같은 명령의 다른 표현은 VoiceCommandParserTest 참고. */
+private val COMMAND_SAMPLES = listOf(
+    "잠깐" to "Hold on a sec",
+    "다시" to "Sorry, can you say that again?",
+    "다음" to "Skip this one",
+    "천천히" to "Too fast. Slow down please",
+    "한국어로" to "What does that mean?",
+    "모르겠어" to "I don't know",
+    "듣기만" to "I'll just listen",
+    "오늘은 그만" to "That's enough for today",
+    "도움말" to "What can I say?",
+)
 
 @Composable
 private fun Info(label: String, value: String) {

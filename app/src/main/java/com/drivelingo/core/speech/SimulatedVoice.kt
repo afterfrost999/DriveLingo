@@ -14,6 +14,8 @@ enum class NextAnswer(val label: String) { AUTO("자동"), NOT_RECOGNIZED("인�
 /** Mock 음성 장치들이 공유하는 조작 상태. */
 class VoiceSimulation {
     val nextAnswer = MutableStateFlow(NextAnswer.AUTO)
+    /** 다음 한 번의 인식 결과를 이 문장으로 정한다(음성 명령 시험용). 한 번 쓰이면 비운다. */
+    val nextPhrase = MutableStateFlow<String?>(null)
     /** 켜면 AI 코치 응답이 타임아웃보다 늦어진다. */
     val slowCoach = MutableStateFlow(false)
 
@@ -32,6 +34,7 @@ class VoiceSimulation {
     fun setEarcon(label: String?) { _lastEarcon.value = label }
 
     internal fun consumeNextAnswer(): NextAnswer = nextAnswer.value.also { nextAnswer.value = NextAnswer.AUTO }
+    internal fun consumeNextPhrase(): String? = nextPhrase.value.also { nextPhrase.value = null }
 }
 
 /** 실제 소리 없이 문장 길이만큼 기다리는 TTS. */
@@ -61,6 +64,11 @@ class SimulatedVoiceInput(private val simulation: VoiceSimulation) : VoiceInput 
     private var turnCount = 0
 
     override suspend fun listen(request: ListenRequest): ListenResult {
+        simulation.consumeNextPhrase()?.let { phrase ->
+            delay(SPOKEN_PHRASE_MS)
+            simulation.setHeard(phrase)
+            return ListenResult.Recognized(phrase)
+        }
         val forced = simulation.consumeNextAnswer()
         val speakingTime = when (request.style) {
             AnswerStyle.LONG -> 6_000L
@@ -94,6 +102,7 @@ class SimulatedVoiceInput(private val simulation: VoiceSimulation) : VoiceInput 
 
     private companion object {
         const val SILENCE_TIMEOUT_MS = 8_000L
+        const val SPOKEN_PHRASE_MS = 1_500L
     }
 }
 

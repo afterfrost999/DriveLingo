@@ -63,6 +63,8 @@ class DebugVehicleReceiver(private val container: AppContainer) : BroadcastRecei
             }
         }
         intent.getStringExtra("slowcoach")?.let { v -> sim.slowCoach.value = v.isOn() }
+        // 다음 말할 차례에 이 문장을 들은 것으로 한다(음성 명령 시험). 예: --es say "Can you say that again?"
+        intent.getStringExtra("say")?.let { v -> sim.nextPhrase.value = v }
         Log.i(TAG, "applied ${intent.extras?.keySet()?.joinToString()} → ${container.drivingMonitor.status.value.situation}")
     }
 
