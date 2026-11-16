@@ -196,4 +196,12 @@ class LessonCommandTest {
         assertEquals(1, h.state.itemIndex)
         assertFalse(h.state.turn == null)
     }
+
+    @Test
+    fun `new phrase prompt has no doubled punctuation`() {
+        plan.items.forEach { item ->
+            val turn = ActivityPlanner.plan(item, LearningMode.REPEAT_AFTER, offline = false) ?: return@forEach
+            assertFalse(turn.prompt, Regex("[.?!]\\.").containsMatchIn(turn.prompt))
+        }
+    }
 }

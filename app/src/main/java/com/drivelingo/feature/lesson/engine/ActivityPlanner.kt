@@ -27,7 +27,9 @@ object ActivityPlanner {
         }
         if (item.kind == ItemKind.INTRODUCE || effective == LearningMode.REPEAT_AFTER) {
             val prompt = if (item.kind == ItemKind.INTRODUCE) {
-                "New phrase. $target. Repeat after me. $target"
+                // 표현이 이미 문장 부호로 끝나면(?, .) 마침표를 덧붙이지 않는다("…again?. Repeat" 방지).
+                val sentence = if (target.trimEnd().lastOrNull() in SENTENCE_END) target.trimEnd() else "$target."
+                "New phrase. $sentence Repeat after me. $target"
             } else {
                 "Repeat after me. $target"
             }
@@ -43,6 +45,8 @@ object ActivityPlanner {
             else -> error("handled above: $effective")
         }
     }
+
+    private val SENTENCE_END = setOf('.', '?', '!')
 
     private val OPEN_ANSWER_MODES = setOf(LearningMode.SHORT_ANSWER, LearningMode.LONG_ANSWER, LearningMode.DETAILED_REVIEW)
 }
