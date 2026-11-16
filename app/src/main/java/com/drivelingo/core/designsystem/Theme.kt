@@ -4,6 +4,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -64,5 +69,11 @@ private val typography = Typography(
 
 @Composable
 fun MalchaTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = colorScheme, typography = typography, content = content)
+    // 큰 차량 디스플레이에서는 dp·sp 를 함께 키운다(DisplayScale). 사용자 글자 크기 설정(fontScale)은 그대로 둔다.
+    val base = LocalDensity.current
+    val scale = DisplayScale.forSmallestWidth(LocalConfiguration.current.smallestScreenWidthDp)
+    val density = remember(base, scale) { Density(base.density * scale, base.fontScale) }
+    CompositionLocalProvider(LocalDensity provides density) {
+        MaterialTheme(colorScheme = colorScheme, typography = typography, content = content)
+    }
 }

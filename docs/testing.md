@@ -77,6 +77,9 @@ scripts/setup-pleos-emulator.sh        # VS Code: Tasks: Run Task → "말차: P
 - 공식 권장 사양은 외장 GPU입니다(최소 RTX 3060 Laptop 6GB급). Apple M2(16GB)에서도 약 20초 만에 부팅되고 정상 동작했습니다(2026-11-16).
 - Android Studio로 설치해도 됩니다. 이때도 AVD 이름을 `Pleos_Connect_v2.1`로 하면 아래 명령을 그대로 쓸 수 있습니다.
 
+화면 크기: Pleos 디스플레이는 2560×1440·160dpi라 1dp = 1px입니다. 앱은 디스플레이 짧은 변 기준으로 dp·sp를 키웁니다(`DisplayScale`, 1440dp → 1.8배).
+그래서 본문 글자가 Pleos 시스템 UI(약 28~30px)와 비슷하게 나오고, 2:1 가로 창은 약 934×672dp 화면처럼 그려집니다. 일반 에뮬레이터·휴대폰은 1배입니다.
+
 ### 2. car 모드로 실행하고 CarUxRestrictions 확인
 
 ```bash
