@@ -32,4 +32,10 @@ data class DrivingSignals(
     val minutesToArrival: Int? = null,
     /** 다음 회전·합류 지점까지 남은 거리(m). null = 정보 없음. */
     val upcomingManeuverMeters: Int? = null,
+    /** 앞 와이퍼가 움직이는 중(비). null = 모름 → 보정하지 않음. */
+    val wipersOn: Boolean? = null,
+    /** 전조등(로우빔)이 켜짐(야간·터널). 주간주행등은 false. null = 모름. */
+    val headlampsOn: Boolean? = null,
+    /** 처음 가는 길. 내비 연동 전이라 Mock 으로만 받는다. */
+    val unfamiliarRoute: Boolean = false,
 )
