@@ -31,6 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drivelingo.app.LocalAppContainer
 import com.drivelingo.core.designsystem.MalchaColors
@@ -45,6 +50,13 @@ fun SettingsScreen(onBack: () -> Unit, onRetakeLevelTest: () -> Unit) {
     val settings by container.progress.settings.collectAsStateWithLifecycle()
     val driving by container.drivingMonitor.status.collectAsStateWithLifecycle()
     var confirmReset by remember { mutableStateOf(false) }
+    // 마이크는 저장값이 아니라 실제 권한을 보여준다. 시스템 설정에서 바꾸고 돌아와도 맞도록 화면에 올 때마다 다시 읽는다.
+    val context = LocalContext.current
+    var micGranted by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(context) {
+        micGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        onPauseOrDispose { }
+    }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -79,7 +91,7 @@ fun SettingsScreen(onBack: () -> Unit, onRetakeLevelTest: () -> Unit) {
             MalchaCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
                 Text("마이크", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    if (settings.micPermissionGranted) "허용됨 · 녹음 원본은 저장하지 않아요" else "허용 안 됨 · 듣기 수업만 할 수 있어요",
+                    if (micGranted) "허용됨 · 녹음 원본은 저장하지 않아요" else "허용 안 됨 · 듣기 수업만 할 수 있어요",
                     style = MaterialTheme.typography.bodyMedium, color = MalchaColors.TextSecondary,
                 )
             }
@@ -87,7 +99,7 @@ fun SettingsScreen(onBack: () -> Unit, onRetakeLevelTest: () -> Unit) {
             SecondaryButton("프로토타입 데이터 초기화", onClick = { confirmReset = true }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             Text(
-                "차량 신호: ${if (container.usesMockVehicle) "Mock (테스트 콘솔)" else "CarUxRestrictions 실연동 + 나머지 Mock"}",
+                "차량 신호: ${if (container.usesMockVehicle) "Mock (테스트 콘솔)" else "Pleos 차량 실연동 (내비·시동·네트워크는 Mock)"}",
                 style = MaterialTheme.typography.labelSmall, color = MalchaColors.TextTertiary,
             )
         }
