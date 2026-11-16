@@ -7,6 +7,7 @@ import com.drivelingo.core.curriculum.LessonPlan
 import com.drivelingo.core.driving.DrivingMonitor
 import com.drivelingo.core.driving.Interruption
 import com.drivelingo.core.progress.ProgressRepository
+import com.drivelingo.core.speech.command.VoiceCommand
 import com.drivelingo.core.speech.VoiceInput
 import com.drivelingo.core.speech.VoiceOutput
 import com.drivelingo.core.vehicle.AudioFocusRequester
@@ -138,5 +139,10 @@ class LessonController(
 
     fun repeat() {
         active?.send(LessonEvent.Repeat)
+    }
+
+    /** 운전대 "다음": 지금 활동을 건너뛴다. 멈춤·침묵 중에는 엔진이 무시한다. */
+    fun next() {
+        active?.send(LessonEvent.Command(VoiceCommand.NEXT))
     }
 }

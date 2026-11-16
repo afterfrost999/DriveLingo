@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  *
  * - 운전대 재생/일시정지 키와 차량 미디어 화면의 버튼이 [LessonController] 로 간다.
  *   재생 = 재개(없으면 새 수업 시작, 사용자가 누른 것이므로 안전 규칙에 맞음), 일시정지 = 사용자 일시정지,
- *   이전 = 마지막 문장 다시 듣기, 정지 = 중단 지점 저장 후 멈춤.
+ *   이전 = 마지막 문장 다시 듣기, 다음 = 지금 활동 건너뛰기, 정지 = 중단 지점 저장 후 멈춤.
  * - 세션은 앱 프로세스와 같이 살고, [LessonMediaService] 는 이 세션의 토큰만 내보낸다.
  *   그래서 미디어 화면이 서비스에 붙기 전에도 adb·운전대 키로 시험할 수 있다(docs/testing.md).
  */
@@ -54,6 +54,11 @@ class LessonMediaSession(
         override fun onSkipToPrevious() {
             Log.i(TAG, "repeat")
             lessons.repeat()
+        }
+
+        override fun onSkipToNext() {
+            Log.i(TAG, "next")
+            lessons.next()
         }
 
         override fun onStop() {
