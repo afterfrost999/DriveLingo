@@ -36,7 +36,7 @@ data class PleosVehicleState(
  * |---|---|---|
  * | 방향지시등 | `TurnSignal.registerTurnSignalState` | `pleos.car.permission.CAR_LIGHTS` |
  * | 브레이크 페달 | `Brake.registerBrakePedalStatus` | `pleos.car.permission.CAR_DRIVE` |
- * | 경고등 | `Safety.registerTelltales` | `pleos.car.permission.CAR_SAFETY` |
+ * | 경고등 | `Safety.registerTelltales` | `pleos.car.permission.CAR_SAFETY` + `PRIVATE_CAR_SAFETY` |
  *
  * 차종마다 지원 범위가 다르므로 등록 전에 `checkXxxCapabilities` 로 읽기 가능 여부를 확인한다.
  * 지원하지 않거나 실패한 신호는 null 로 두고, 판단 로직이 안전한 쪽으로 해석한다.

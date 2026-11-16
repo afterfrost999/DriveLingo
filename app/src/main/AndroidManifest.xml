@@ -10,11 +10,14 @@
 
     <!--
         Pleos Vehicle SDK 퍼미션. Pleos App Market 과 사전 협의해 승인된 범위만 배포할 수 있다(미승인, docs/policy-review.md).
-        CAR_LIGHTS: TurnSignal(방향지시등) / CAR_DRIVE: Brake(브레이크 페달) / CAR_SAFETY: Safety(경고등)
+        CAR_LIGHTS: TurnSignal(방향지시등) / CAR_DRIVE: Brake(브레이크 페달)
+        CAR_SAFETY + PRIVATE_CAR_SAFETY: Safety 경고등. getTelltalesInfo 는 CAR_SAFETY,
+        checkTelltalesCapabilities·registerTelltales 는 PRIVATE_CAR_SAFETY 를 요구한다(SDK 2.3.2 @RequiresPermission).
     -->
     <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
     <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
+    <uses-permission android:name="pleos.car.permission.PRIVATE_CAR_SAFETY" />
 
     <!-- AAOS CarPropertyManager. CAR_SPEED 는 런타임 권한이라 car 모드에서 MainActivity 가 요청한다. -->
     <uses-permission android:name="android.car.permission.CAR_SPEED" />
