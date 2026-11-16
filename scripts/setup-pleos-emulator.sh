@@ -115,15 +115,21 @@ xml = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 open(sys.argv[2], 'w').write(xml)
 PY
 
-if "$SDK/emulator/emulator" -list-avds 2>/dev/null | grep -qx "$AVD"; then
+# 화면 크기는 이미지에 들어 있는 기기 정의(devices.xml, Pleos Connect v2.1 = 2560x1440 mdpi)를 쓴다.
+# 일반 Automotive 기기(1024x768)로 만들면 Pleos 홈·클러스터·공조 바가 겹쳐 화면이 깨진다.
+DEVICE="$(grep -oE '<d:id>[^<]+' "$IMG_DIR/devices.xml" 2>/dev/null | head -1 | cut -d'>' -f2 || true)"
+DEVICE="${DEVICE:-automotive_1024p_landscape}"
+CONFIG="$HOME/.android/avd/$AVD.avd/config.ini"
+
+if "$SDK/emulator/emulator" -list-avds 2>/dev/null | grep -qx "$AVD" &&
+   grep -qE "^hw.device.name ?= ?$DEVICE$" "$CONFIG" 2>/dev/null; then
   echo "AVD 가 이미 있습니다: $AVD"
 else
-  echo "AVD 만들기: $AVD ($PKG_PATH)"
-  echo no | "$AVDMANAGER" create avd -n "$AVD" -k "$PKG_PATH" -d automotive_1024p_landscape --force >/dev/null
+  echo "AVD 만들기: $AVD ($PKG_PATH, 기기 $DEVICE)"
+  echo no | "$AVDMANAGER" create avd -n "$AVD" -k "$PKG_PATH" -d "$DEVICE" --force >/dev/null
 fi
 
 # 공식 가이드 설정: Cold boot(Quick boot 면 VHAL 사용 불가), RAM 4GB, 하드웨어 그래픽, 마이크 입력(STT 테스트).
-CONFIG="$HOME/.android/avd/$AVD.avd/config.ini"
 set_config() {
   if grep -q "^$1=" "$CONFIG"; then sed -i '' "s|^$1=.*|$1=$2|" "$CONFIG"; else echo "$1=$2" >> "$CONFIG"; fi
 }
