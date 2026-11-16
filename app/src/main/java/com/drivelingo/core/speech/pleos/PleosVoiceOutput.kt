@@ -69,12 +69,15 @@ class PleosVoiceOutput(
     }
 
     init {
-        tts.addEventListener(listener)
+        // 리스너는 initialize 성공 뒤에 등록한다. SDK 내부 서비스 연결(lateinit)이 그 전에는 없어서
+        // 생성 직후 addEventListener 를 부르면 UninitializedPropertyAccessException 으로 앱이 죽는다(에뮬레이터 확인).
         tts.initialize(object : OnInitializeListener {
             override fun onSuccess() {
-                Log.i(TAG, "tts initialized (server=${credentials != null})")
-                credentials?.let(::register)
-                ready.complete(true)
+                val attached = runCatching { tts.addEventListener(listener) }
+                    .onFailure { Log.w(TAG, "tts addEventListener failed", it) }.isSuccess
+                Log.i(TAG, "tts initialized (server=${credentials != null}, listener=$attached)")
+                if (attached) credentials?.let(::register)
+                ready.complete(attached)
             }
 
             override fun onFailure(errorType: ErrorType) {
@@ -148,8 +151,8 @@ class PleosVoiceOutput(
     }
 
     fun release() {
-        tts.removeEventListener(listener)
-        tts.release()
+        runCatching { tts.removeEventListener(listener) }
+        runCatching { tts.release() }
     }
 
     private companion object {

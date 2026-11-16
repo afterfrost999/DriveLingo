@@ -91,13 +91,16 @@ class PleosVoiceInput(
     }
 
     init {
-        stt.addListener(listener)
+        // 리스너는 initialize 성공 뒤, request() 전에 등록한다. 생성 직후에는 SDK 내부 서비스 연결이 없어
+        // TTS 와 같은 이유로 앱이 죽을 수 있다(PleosVoiceOutput 참고).
         stt.initialize(object : OnInitializeListener {
             override fun onSuccess() {
-                Log.i(TAG, "stt initialized (server=${credentials != null})")
+                val attached = runCatching { stt.addListener(listener) }
+                    .onFailure { Log.w(TAG, "stt addListener failed", it) }.isSuccess
+                Log.i(TAG, "stt initialized (server=${credentials != null}, listener=$attached)")
                 runCatching { stt.setLocale(Locale.US) }.onFailure { Log.w(TAG, "setLocale failed", it) }
-                credentials?.let(::register)
-                ready.complete(true)
+                if (attached) credentials?.let(::register)
+                ready.complete(attached)
             }
 
             override fun onFailure(errorType: ErrorType) {
@@ -146,8 +149,8 @@ class PleosVoiceInput(
     }
 
     fun release() {
-        stt.removeListener(listener)
-        stt.release()
+        runCatching { stt.removeListener(listener) }
+        runCatching { stt.release() }
     }
 
     private companion object {
