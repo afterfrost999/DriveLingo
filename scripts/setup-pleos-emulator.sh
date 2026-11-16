@@ -72,7 +72,13 @@ else
 
   ZIP="$CACHE/$(basename "$ZIP_URL")"
   echo "시스템 이미지 내려받기 ($((ZIP_SIZE / 1024 / 1024)) MB, 중단돼도 다시 실행하면 이어 받습니다)"
-  curl -fL -C - "$ZIP_URL" -o "$ZIP"
+  # 서버가 응답 없이 멈추는 일이 있어, 60초 동안 1KB/s 미만이면 끊고 받은 데서부터 다시 받는다.
+  for attempt in $(seq 1 20); do
+    curl -fL -C - --speed-limit 1024 --speed-time 60 "$ZIP_URL" -o "$ZIP" && break
+    [ "$attempt" = 20 ] && { echo "내려받기에 계속 실패했습니다. 다시 실행하면 이어 받습니다." >&2; exit 1; }
+    echo "내려받기가 끊겼습니다. 이어 받기 재시도 ($attempt/20)"
+    sleep 5
+  done
   echo "SHA-1 확인"
   echo "$ZIP_SHA1  $ZIP" | shasum -a 1 -c -
 
