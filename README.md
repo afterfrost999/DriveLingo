@@ -13,7 +13,7 @@ Pleos STT/TTS 실제 음성을 씁니다. 수업은 MediaSession으로 노출되
 요구 환경: JDK 17 이상(21에서 검증), Android SDK 35.
 
 ```bash
-./gradlew :app:testDebugUnitTest     # 단위 테스트 78개
+./gradlew :app:testDebugUnitTest     # 단위 테스트 128개
 ./gradlew assembleDebug              # app/build/outputs/apk/debug/app-debug.apk (차량 시뮬레이터 포함)
 ./gradlew assembleRelease            # app/build/outputs/apk/release/app-release.apk (시뮬레이터 없음, debug 키 서명)
 ./gradlew installDebug               # 실행 중인 에뮬레이터·기기에 설치
@@ -75,6 +75,11 @@ app/src/main/java/com/drivelingo/
 - CarUxRestrictions 기준 화면 제한(주행 중 숫자·텍스트·설정 숨김)
 - 차량 시뮬레이터(앱 안) + adb 브로드캐스트로 모든 신호와 오류 재현
 
+### 2차 PT 준비 (plan.md P0)
+- 효과음 6종: 말할 차례 '띵', 콤보 1~5단, 멈춤 '톡', 재개, 정차 질문 '띵동', 마무리 멜로디. 코드로 합성, 모두 0.5초 이내
+- 음성 명령 10가지(잠깐·다시·다음·천천히·빠르게·한국어로·모르겠어·오늘은 그만·듣기만·도움말)를 영어·한국어 여러 표현으로 인식. 운전대 "다음" 버튼
+- 비·야간·초행길이면 활동 상한을 한 단계 낮춤(Vehicle SDK 와이퍼·전조등)
+
 ### 실연동 구현 (빌드·단위 테스트까지 확인, 에뮬레이터 미검증)
 - Pleos Connect 에뮬레이터 설치 스크립트와 CarUxRestrictions 확인 스크립트
 - Pleos Vehicle SDK: 방향지시등, 브레이크 페달, 경고등(새로 켜진 경고만 5초 중단). `checkXxxCapabilities`로 지원 여부를 먼저 확인
@@ -87,7 +92,7 @@ app/src/main/java/com/drivelingo/
 - NaviHelper(도착 시간·다음 회전 거리), 시동(`IGNITION_STATE`), 네트워크(`ConnectivityManager`)
 - 백엔드(Spring Boot/PostgreSQL)와 LLM 코치. 현재는 규칙 기반 `MockEnglishCoach`입니다
 - 화면 없이 오래 재생하기 위한 mediaPlayback 포그라운드 서비스
-- TTS 말하기 속도 조절(SDK에 API 없음)
+- TTS 말하기 속도 자체 조절(SDK에 API 없음). 대신 문장·쉼표 사이에 쉼을 넣어 천천히 들리게 합니다
 
 ### 검증 필요
 - Pleos Connect 에뮬레이터에서 car·pleos 모드 동작 전체. 특히 **Pleos TTS 재생이 앱의 오디오 포커스를 가져가는지**(`docs/pleos-sdk-status.md` 4장)
