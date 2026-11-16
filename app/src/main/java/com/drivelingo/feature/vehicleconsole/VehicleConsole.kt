@@ -97,7 +97,7 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("차량 시뮬레이터 (Mock)", style = MaterialTheme.typography.titleMedium, color = MalchaColors.Amber, modifier = Modifier.weight(1f))
+                Text(if (container.usesMockVehicle) "차량 시뮬레이터 (Mock)" else "차량 시뮬레이터 (car)", style = MaterialTheme.typography.titleMedium, color = MalchaColors.Amber, modifier = Modifier.weight(1f))
                 IconButton(onClick = onClose) { Icon(Icons.Filled.Close, contentDescription = "닫기") }
             }
 
