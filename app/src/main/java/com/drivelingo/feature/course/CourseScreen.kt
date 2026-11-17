@@ -172,8 +172,10 @@ private fun WeeksColumn(state: CourseUiState) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Flag, null, tint = MalchaColors.TextSecondary)
             Spacer(Modifier.width(10.dp))
-            Text("체크포인트 · 4주차 금요일 퇴근 수업", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text("통과하면 다음 레벨", style = MaterialTheme.typography.labelSmall, color = MalchaColors.TextTertiary)
+            Column(Modifier.weight(1f)) {
+                Text("체크포인트 · 4주차 금요일 퇴근 수업", style = MaterialTheme.typography.titleMedium)
+                Text("통과하면 다음 레벨로 올라가요", style = MaterialTheme.typography.labelSmall, color = MalchaColors.TextTertiary)
+            }
         }
     }
 }
@@ -186,7 +188,7 @@ private fun WeekPlanColumn(state: CourseUiState) {
     Row {
         Spacer(Modifier.width(32.dp))
         Text("출근 · 새 표현 2개", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MalchaColors.TextSecondary)
-        Text("퇴근 · 꺼내 쓰기", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MalchaColors.TextSecondary)
+        Text("퇴근 · 복습", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MalchaColors.TextSecondary)
     }
     Spacer(Modifier.height(6.dp))
     state.days.forEach { slots ->

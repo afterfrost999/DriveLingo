@@ -28,7 +28,8 @@ class MockCurriculumRepository : CurriculumRepository {
         val commute = if (lessonNumber % 2 == 1) CommuteType.MORNING else CommuteType.EVENING
         val day = weekPlan(level, week)[dayIndex]
         val todays = MockCurriculum.expressionsFor(level, week, dayIndex)
-        val yesterday = if (dayIndex > 0) MockCurriculum.expressionsFor(level, week, dayIndex - 1).first() else null
+        // 어제 표현이 오늘 표현과 같으면(주마다 표현 2개인 주차) 몸풀기 복습을 넣지 않는다.
+        val yesterday = if (dayIndex > 0) MockCurriculum.expressionsFor(level, week, dayIndex - 1).first().takeIf { it !in todays } else null
 
         return if (commute == CommuteType.MORNING) {
             LessonPlan(

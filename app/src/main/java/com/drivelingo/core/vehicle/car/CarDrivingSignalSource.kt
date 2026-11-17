@@ -50,7 +50,7 @@ data class DerivedEvents(
  */
 object CarSignalMerger {
     /** 차량 시뮬레이터 화면에 "실제 값" 으로 표시하는 신호 이름. */
-    val REAL_SIGNALS = listOf("CarUx", "방향지시등", "경고등", "급제동", "속도", "기어", "오디오 포커스", "내비 안내", "전화")
+    val REAL_SIGNALS = listOf("CarUx", "방향지시등", "경고등", "급제동", "속도", "기어", "와이퍼", "전조등", "오디오 포커스", "내비 안내", "전화")
 
     fun merge(mock: DrivingSignals, real: CarReadings, events: DerivedEvents): DrivingSignals = mock.copy(
         uxRestrictions = real.ux,
@@ -63,6 +63,9 @@ object CarSignalMerger {
         audioFocus = real.audio.focus,
         navVoiceGuidanceActive = real.audio.navGuidanceActive,
         phoneCallActive = real.audio.phoneCallActive,
+        // 못 읽으면 null → 보정하지 않는다(초행길은 내비 연동 전이라 Mock 값을 그대로 쓴다).
+        wipersOn = real.vehicle.wipersOn,
+        headlampsOn = real.vehicle.headlampsOn,
     )
 }
 

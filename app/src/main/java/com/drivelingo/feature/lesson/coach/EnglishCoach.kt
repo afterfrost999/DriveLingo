@@ -15,6 +15,8 @@ data class CoachRequest(
     val question: String,
     val expectedAnswer: String,
     val answer: String,
+    /** 정답이 없는 내 얘기 질문. 모범 답안은 예시로만 들려준다. */
+    val openEnded: Boolean = false,
 )
 
 /**
@@ -43,7 +45,10 @@ class MockEnglishCoach(private val simulation: VoiceSimulation) : EnglishCoach {
             )
         }
         val similarity = PhraseMatcher.similarity(request.answer, request.expectedAnswer)
-        return if (similarity >= 0.6f) {
+        return if (request.openEnded) {
+            // 내 얘기 질문은 학습자 답이 모범 답안과 달라도 맞는 답이다. 예시와 다르다고 고쳐 주지 않는다.
+            CoachFeedback("Thanks for sharing! For example, you could also say: ${request.expectedAnswer}", correct = true)
+        } else if (similarity >= 0.6f) {
             CoachFeedback("Great! That sounds natural.", correct = true)
         } else {
             CoachFeedback("Nice! You could also say: ${request.expectedAnswer}", correct = true)

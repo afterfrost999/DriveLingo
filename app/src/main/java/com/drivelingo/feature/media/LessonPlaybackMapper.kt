@@ -21,7 +21,7 @@ data class LessonPlayback(
  *
  * - 수업 없음/끝남: 정지. 재생(새 수업 시작)만 할 수 있다.
  * - 멈춤(사용자 일시정지·중단 이벤트): 일시정지. 재생(재개)·정지.
- * - 그 밖: 재생 중. 일시정지·다시 듣기(이전)·정지.
+ * - 그 밖: 재생 중. 일시정지·다시 듣기(이전)·건너뛰기(다음)·정지.
  */
 object LessonPlaybackMapper {
 
@@ -51,7 +51,8 @@ object LessonPlaybackMapper {
                 START_ACTIONS or PlaybackStateCompat.ACTION_STOP
             } else {
                 PlaybackStateCompat.ACTION_PAUSE or PlaybackStateCompat.ACTION_PLAY_PAUSE or
-                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_STOP
+                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                    PlaybackStateCompat.ACTION_STOP
             },
             title = state.plan.title,
             subtitle = subtitle(state),

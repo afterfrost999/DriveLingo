@@ -1,11 +1,13 @@
 package com.drivelingo.feature.lesson
 
+import com.drivelingo.core.audio.EarconPlayer
 import com.drivelingo.core.curriculum.CommuteType
 import com.drivelingo.core.curriculum.CurriculumRepository
 import com.drivelingo.core.curriculum.LessonPlan
 import com.drivelingo.core.driving.DrivingMonitor
 import com.drivelingo.core.driving.Interruption
 import com.drivelingo.core.progress.ProgressRepository
+import com.drivelingo.core.speech.command.VoiceCommand
 import com.drivelingo.core.speech.VoiceInput
 import com.drivelingo.core.speech.VoiceOutput
 import com.drivelingo.core.vehicle.AudioFocusRequester
@@ -37,6 +39,7 @@ class LessonController(
     private val drivingMonitor: DrivingMonitor,
     private val voiceOutput: VoiceOutput,
     private val voiceInput: VoiceInput,
+    private val earcons: EarconPlayer,
     private val coach: EnglishCoach,
     private val audioFocus: AudioFocusRequester,
     private val curriculum: CurriculumRepository,
@@ -71,6 +74,7 @@ class LessonController(
             drivingMonitor = drivingMonitor,
             voiceOutput = voiceOutput,
             voiceInput = voiceInput,
+            earcons = earcons,
             coach = coach,
             audioFocus = audioFocus,
             progress = progress,
@@ -135,5 +139,10 @@ class LessonController(
 
     fun repeat() {
         active?.send(LessonEvent.Repeat)
+    }
+
+    /** 운전대 "다음": 지금 활동을 건너뛴다. 멈춤·침묵 중에는 엔진이 무시한다. */
+    fun next() {
+        active?.send(LessonEvent.Command(VoiceCommand.NEXT))
     }
 }

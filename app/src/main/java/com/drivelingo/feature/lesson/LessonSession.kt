@@ -1,6 +1,7 @@
 package com.drivelingo.feature.lesson
 
 import android.util.Log
+import com.drivelingo.core.audio.EarconPlayer
 import com.drivelingo.core.curriculum.LessonPlan
 import com.drivelingo.core.driving.DrivingMonitor
 import com.drivelingo.core.driving.InterruptionDetector
@@ -46,6 +47,7 @@ class LessonSession(
     private val drivingMonitor: DrivingMonitor,
     private val voiceOutput: VoiceOutput,
     private val voiceInput: VoiceInput,
+    private val earcons: EarconPlayer,
     private val coach: EnglishCoach,
     private val audioFocus: AudioFocusRequester,
     private val progress: ProgressRepository,
@@ -64,6 +66,11 @@ class LessonSession(
         ),
     )
     val state: StateFlow<LessonState> = _state.asStateFlow()
+
+    private val _listening = MutableStateFlow<ListenWindow?>(null)
+
+    /** 마이크가 열려 있는 동안의 대답 시간. 효과음과 에코 가드가 끝나 실제로 듣기 시작할 때부터다. */
+    val listening: StateFlow<ListenWindow?> = _listening.asStateFlow()
 
     private var audioJob: Job? = null
     private var coachJob: Job? = null
@@ -115,6 +122,7 @@ class LessonSession(
             is LessonEffect.Speak -> {
                 audioJob?.cancel()
                 audioJob = scope.launch {
+                    effect.cue?.let { earcons.play(it) }
                     voiceOutput.speak(effect.text, effect.rate)
                     send(LessonEvent.SpeechFinished(effect.token))
                 }
@@ -123,8 +131,16 @@ class LessonSession(
                 audioJob?.cancel()
                 voiceOutput.stop()
                 audioJob = scope.launch {
+                    // '띵'이 끝난 뒤 에코 가드만큼 기다리고 마이크를 연다(STT 가 효과음을 듣지 않도록).
+                    effect.cue?.let { earcons.play(it) }
                     delay(effect.echoGuardMs)
-                    val result = voiceInput.listen(effect.turn.toListenRequest())
+                    val window = ListenWindow(effect.token, effect.turn.answerLimitMs)
+                    _listening.value = window
+                    val result = try {
+                        voiceInput.listen(effect.turn.toListenRequest())
+                    } finally {
+                        _listening.compareAndSet(window, null)
+                    }
                     send(
                         when (result) {
                             is ListenResult.Recognized -> LessonEvent.AnswerRecognized(effect.token, result.text)
@@ -133,6 +149,10 @@ class LessonSession(
                         },
                     )
                 }
+            }
+            is LessonEffect.PlayEarcon -> {
+                audioJob?.cancel()
+                audioJob = scope.launch { earcons.play(effect.earcon) }
             }
             LessonEffect.StopAudio -> {
                 audioJob?.cancel()
@@ -146,6 +166,7 @@ class LessonSession(
                     val request = CoachRequest(
                         level = plan.level, itemId = effect.turn.itemId, activity = effect.turn.activity,
                         question = effect.turn.prompt, expectedAnswer = effect.turn.expectedAnswer, answer = effect.answer,
+                        openEnded = effect.turn.openEnded,
                     )
                     val reply = withTimeoutOrNull(COACH_TIMEOUT_MS) {
                         runCatching { coach.feedback(request) }

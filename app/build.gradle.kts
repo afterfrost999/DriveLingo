@@ -5,8 +5,9 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-val vehicleSource = providers.gradleProperty("drivelingo.vehicleSource").getOrElse("mock")
-val voiceSource = providers.gradleProperty("drivelingo.voiceSource").getOrElse("simulated")
+// 기본은 Pleos 실연동(car + pleos). mock·simulated 는 Pleos 서비스가 없는 일반 에뮬레이터·CI 용 대체 경로다.
+val vehicleSource = providers.gradleProperty("drivelingo.vehicleSource").getOrElse("car")
+val voiceSource = providers.gradleProperty("drivelingo.voiceSource").getOrElse("pleos")
 // Pleos STT/TTS 서버 모드용 앱 등록 정보. 저장소에 넣지 않는다(~/.gradle/gradle.properties 또는 -P 로 전달).
 // 비어 있으면 On-device 엔진만 쓴다. 배포 빌드에서는 앱에 넣지 말고 백엔드에서 받아 와야 한다.
 val pleosClientId = providers.gradleProperty("drivelingo.pleosClientId").getOrElse("")

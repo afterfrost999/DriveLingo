@@ -85,7 +85,8 @@ class ProgressRepository(
             corrections = (result.tally.corrections + current.corrections).distinct().take(MAX_CORRECTIONS),
             lastResult = result,
             checkpoint = null,
-            weeklySegmentWords = current.weeklySegmentWords + result.tally.words,
+            // 듣기만 한 수업은 구간 점수를 받지 않는다(UX 기획서 9장 "동승자").
+            weeklySegmentWords = current.weeklySegmentWords + if (result.tally.listenOnly) 0 else result.tally.words,
         )
     }
 

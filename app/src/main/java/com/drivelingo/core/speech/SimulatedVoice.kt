@@ -1,5 +1,8 @@
 package com.drivelingo.core.speech
 
+import com.drivelingo.core.audio.Earcon
+import com.drivelingo.core.audio.EarconPlayer
+import com.drivelingo.core.audio.EarconSynth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +14,8 @@ enum class NextAnswer(val label: String) { AUTO("자동"), NOT_RECOGNIZED("인�
 /** Mock 음성 장치들이 공유하는 조작 상태. */
 class VoiceSimulation {
     val nextAnswer = MutableStateFlow(NextAnswer.AUTO)
+    /** 다음 한 번의 인식 결과를 이 문장으로 정한다(음성 명령 시험용). 한 번 쓰이면 비운다. */
+    val nextPhrase = MutableStateFlow<String?>(null)
     /** 켜면 AI 코치 응답이 타임아웃보다 늦어진다. */
     val slowCoach = MutableStateFlow(false)
 
@@ -20,10 +25,16 @@ class VoiceSimulation {
     private val _lastHeard = MutableStateFlow<String?>(null)
     val lastHeard: StateFlow<String?> = _lastHeard.asStateFlow()
 
+    private val _lastEarcon = MutableStateFlow<String?>(null)
+    /** 마지막으로 낸 효과음(차량 시뮬레이터 표시용). 실제 재생 여부와 관계없이 기록한다. */
+    val lastEarcon: StateFlow<String?> = _lastEarcon.asStateFlow()
+
     internal fun setSpeaking(text: String?) { _nowSpeaking.value = text }
     internal fun setHeard(text: String?) { _lastHeard.value = text }
+    fun setEarcon(label: String?) { _lastEarcon.value = label }
 
     internal fun consumeNextAnswer(): NextAnswer = nextAnswer.value.also { nextAnswer.value = NextAnswer.AUTO }
+    internal fun consumeNextPhrase(): String? = nextPhrase.value.also { nextPhrase.value = null }
 }
 
 /** 실제 소리 없이 문장 길이만큼 기다리는 TTS. */
@@ -53,6 +64,11 @@ class SimulatedVoiceInput(private val simulation: VoiceSimulation) : VoiceInput 
     private var turnCount = 0
 
     override suspend fun listen(request: ListenRequest): ListenResult {
+        simulation.consumeNextPhrase()?.let { phrase ->
+            delay(SPOKEN_PHRASE_MS)
+            simulation.setHeard(phrase)
+            return ListenResult.Recognized(phrase)
+        }
         val forced = simulation.consumeNextAnswer()
         val speakingTime = when (request.style) {
             AnswerStyle.LONG -> 6_000L
@@ -86,6 +102,7 @@ class SimulatedVoiceInput(private val simulation: VoiceSimulation) : VoiceInput 
 
     private companion object {
         const val SILENCE_TIMEOUT_MS = 8_000L
+        const val SPOKEN_PHRASE_MS = 1_500L
     }
 }
 
@@ -110,5 +127,13 @@ internal object MockLearnerAnswers {
         }
         val pair = byItem[request.itemId] ?: return expected ?: "Sorry, I don't know."
         return if (request.style == AnswerStyle.LONG) pair.second else pair.first
+    }
+}
+
+/** 소리 없이 효과음 길이만큼 기다리고 차량 시뮬레이터에 표시만 한다. */
+class SimulatedEarconPlayer(private val simulation: VoiceSimulation) : EarconPlayer {
+    override suspend fun play(earcon: Earcon) {
+        simulation.setEarcon(earcon.label)
+        delay(EarconSynth.durationMs(earcon).toLong())
     }
 }

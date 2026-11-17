@@ -10,24 +10,31 @@ import com.drivelingo.core.vehicle.TurnSignal
  * @param resumeDelayMs 이벤트가 끝난 뒤 재개까지 기다리는 시간. 운전자가 상황을 정리할 여유를 준다.
  * @param needsUserAction true 면 자동 재개하지 않는다(오디오 포커스 영구 상실, 사용자 일시정지).
  *   Pleos Music/Audio 가이드: 자동 재생 금지, 사용자의 명시적 동작 또는 시스템 재개 요청으로만 재생.
+ * @param allowsPauseCue 멈출 때 '톡' 효과음을 내도 되는지.
+ *   내비 안내·전화·다른 앱 소리는 이미 다른 소리가 나고 있고, 차량 경고·급제동은 차량 경고음이 우선이며
+ *   운전자를 방해하면 안 되므로 소리 없이 멈춘다.
  */
 enum class Interruption(
     val label: String,
     val priority: Int,
     val resumeDelayMs: Long,
     val needsUserAction: Boolean,
+    val allowsPauseCue: Boolean,
 ) {
-    VEHICLE_WARNING("차량 경고", 1, 3_000, false),
-    SUDDEN_BRAKING("급제동", 2, 5_000, false),
-    PHONE_CALL("전화", 3, 2_000, false),
-    AUDIO_FOCUS_LOST("다른 앱 소리", 4, 0, true),
-    AUDIO_FOCUS_TRANSIENT("다른 앱 소리", 5, 1_000, false),
-    NAV_GUIDANCE("내비 안내", 6, 1_500, false),
-    TURN_SIGNAL("방향지시등", 7, 2_000, false),
-    USER_PAUSE("일시정지", 8, 0, true);
+    VEHICLE_WARNING("차량 경고", 1, 3_000, false, false),
+    SUDDEN_BRAKING("급제동", 2, 5_000, false, false),
+    PHONE_CALL("전화", 3, 2_000, false, false),
+    AUDIO_FOCUS_LOST("다른 앱 소리", 4, 0, true, false),
+    AUDIO_FOCUS_TRANSIENT("다른 앱 소리", 5, 1_000, false, false),
+    NAV_GUIDANCE("내비 안내", 6, 1_500, false, false),
+    TURN_SIGNAL("방향지시등", 7, 2_000, false, true),
+    USER_PAUSE("일시정지", 8, 0, true, true);
 
     companion object {
         fun primary(active: Set<Interruption>): Interruption? = active.minByOrNull { it.priority }
+
+        /** 지금 멈춘 사유가 모두 효과음을 허용할 때만 '톡'을 낸다. */
+        fun allowPauseCue(active: Set<Interruption>): Boolean = active.isNotEmpty() && active.all { it.allowsPauseCue }
     }
 }
 

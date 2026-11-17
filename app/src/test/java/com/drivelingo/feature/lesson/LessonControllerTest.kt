@@ -4,6 +4,7 @@ import com.drivelingo.core.curriculum.MockCurriculumRepository
 import com.drivelingo.core.driving.DrivingMonitor
 import com.drivelingo.core.progress.InMemoryStore
 import com.drivelingo.core.progress.ProgressRepository
+import com.drivelingo.core.speech.SimulatedEarconPlayer
 import com.drivelingo.core.speech.SimulatedVoiceInput
 import com.drivelingo.core.speech.SimulatedVoiceOutput
 import com.drivelingo.core.speech.VoiceSimulation
@@ -34,6 +35,7 @@ class LessonControllerTest {
             drivingMonitor = DrivingMonitor(mock, scope, clock),
             voiceOutput = SimulatedVoiceOutput(sim),
             voiceInput = SimulatedVoiceInput(sim),
+            earcons = SimulatedEarconPlayer(sim),
             coach = MockEnglishCoach(sim),
             audioFocus = mock,
             curriculum = MockCurriculumRepository(),

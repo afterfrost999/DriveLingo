@@ -2,25 +2,18 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "말차: 에뮬레이터에서 실행",
+      "label": "말차: Pleos 에뮬레이터에서 실행",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/run.sh",
+      "options": { "env": { "AVD": "Pleos_Connect_v2.1" } },
       "group": { "kind": "build", "isDefault": true },
       "problemMatcher": []
     },
     {
-      "label": "말차: 실행 (차량 CarUx 실연동 모드)",
+      "label": "말차: 실행 (Mock 대체 빌드, 일반 Android 에뮬레이터)",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/run.sh",
-      "args": ["-Pdrivelingo.vehicleSource=car"],
-      "problemMatcher": []
-    },
-    {
-      "label": "말차: 실행 (Pleos 실연동: 차량 신호 + 음성)",
-      "type": "shell",
-      "command": "${workspaceFolder}/scripts/run.sh",
-      "args": ["-Pdrivelingo.vehicleSource=car", "-Pdrivelingo.voiceSource=pleos"],
-      "options": { "env": { "AVD": "Pleos_Connect_v2.1" } },
+      "args": ["-Pdrivelingo.vehicleSource=mock", "-Pdrivelingo.voiceSource=simulated"],
       "problemMatcher": []
     },
     {

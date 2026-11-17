@@ -29,11 +29,12 @@ class LessonPlaybackMapperTest {
     }
 
     @Test
-    fun `running lesson can be paused and repeated`() {
+    fun `running lesson can be paused, repeated and skipped`() {
         val p = LessonPlaybackMapper.map(state(LessonPhase.ANSWER))
         assertEquals(PlaybackStateCompat.STATE_PLAYING, p.state)
         assertTrue(p.can(PlaybackStateCompat.ACTION_PAUSE))
         assertTrue(p.can(PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS))
+        assertTrue(p.can(PlaybackStateCompat.ACTION_SKIP_TO_NEXT))
         assertEquals("말할 차례", p.subtitle)
     }
 
@@ -42,6 +43,7 @@ class LessonPlaybackMapperTest {
         val p = LessonPlaybackMapper.map(state(LessonPhase.PAUSED, setOf(Interruption.TURN_SIGNAL, Interruption.PHONE_CALL)))
         assertEquals(PlaybackStateCompat.STATE_PAUSED, p.state)
         assertTrue(p.can(PlaybackStateCompat.ACTION_PLAY))
+        assertFalse(p.can(PlaybackStateCompat.ACTION_SKIP_TO_NEXT)) // 멈춘 동안에는 건너뛰지 않는다
         assertEquals("잠시 멈춤 · 전화", p.subtitle)
     }
 

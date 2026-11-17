@@ -22,13 +22,13 @@
 
 | gradle 속성 | 값 | 바뀌는 것 |
 |---|---|---|
-| `drivelingo.vehicleSource` | `mock`(기본) / `car` | 차량 신호와 오디오 포커스. `car`이면 아래 표의 "실연동" 신호를 실제 소스에서 읽습니다 |
-| `drivelingo.voiceSource` | `simulated`(기본) / `pleos` | 음성. `pleos`이면 Pleos STT/TTS로 실제 소리를 내고 듣습니다 |
+| `drivelingo.vehicleSource` | `car`(기본) / `mock` | 차량 신호와 오디오 포커스. `car`이면 아래 표의 "실연동" 신호를 실제 소스에서 읽습니다. `mock`은 Pleos 서비스가 없는 일반 에뮬레이터·CI용 |
+| `drivelingo.voiceSource` | `pleos`(기본) / `simulated` | 음성. `pleos`이면 Pleos STT/TTS로 실제 소리를 내고 듣습니다. `simulated`는 소리 없는 대체 경로 |
 | `drivelingo.pleosClientId` / `drivelingo.pleosClientSecret` | 빈 값(기본) | 있으면 STT/TTS를 `HYBRID` + `registerApp()`으로, 없으면 `ON_DEVICE`로 씁니다 |
 
 ```bash
 # Pleos Connect 에뮬레이터에서 실제 신호 + 실제 음성
-AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
+AVD=Pleos_Connect_v2.1 scripts/run.sh   # 기본 빌드가 Pleos 실연동
 ```
 
 앱 등록 정보는 저장소에 넣지 않습니다. 로컬에서는 `~/.gradle/gradle.properties`에 두거나 `-P`로 넘깁니다.
@@ -53,7 +53,10 @@ BuildConfig에 들어가므로 **배포 빌드에서는 쓰지 말고** 백엔�
 | 전화 | **Pleos 전용 API를 문서에서 찾지 못함.** 오디오 모드(`RINGTONE`/`IN_CALL`/`IN_COMMUNICATION`)와 통화 재생 용도로 봅니다 | 없음 | **실연동(추정)** | 같음 |
 | STT | SpeechToText SDK (en-US) | `pleos.car.permission.STT_SERVICE` | **실연동** (`voiceSource=pleos`) | `core/speech/pleos/PleosVoiceInput.kt` |
 | TTS | TextToSpeech SDK | `pleos.car.permission.TTS_SERVICE` | **실연동** (`voiceSource=pleos`) | `core/speech/pleos/PleosVoiceOutput.kt` |
-| 스티어링 휠 키·미디어 화면 | `MediaSessionCompat` + `MediaBrowserServiceCompat` | 없음 | **구현** | `feature/media/` |
+| 앞 와이퍼 (비 보정) | Vehicle SDK `Wiper.registerWiperState(FRONT_WINDSHIELD)` | `pleos.car.permission.CAR_WINDOWS` | **실연동** (에뮬레이터 미검증) | `core/vehicle/car/PleosVehicleReader.kt` |
+| 전조등 (야간 보정) | Vehicle SDK `Light.registerLowBeamLightState` (주간주행등은 야간 아님) | `pleos.car.permission.CAR_LIGHTS` | **실연동** (에뮬레이터 미검증) | 같음 |
+| 초행길 | 내비 연동 전 | – | Mock | `core/driving/DrivingConditions.kt` |
+| 스티어링 휠 키·미디어 화면 | `MediaSessionCompat` + `MediaBrowserServiceCompat`. 재생/일시정지·이전(다시 듣기)·**다음(건너뛰기)**·정지 | 없음 | **구현** | `feature/media/` |
 | 시동 | `CarPropertyManager` `IGNITION_STATE`로 가능 | `CAR_POWERTRAIN` | Mock | |
 | 도착까지 남은 시간·다음 회전 거리 | NaviHelper `onRouteStateInfo`, `onTBTInfo` | NaviHelper 권한 | Mock | |
 | 네트워크 | Android `ConnectivityManager` | `ACCESS_NETWORK_STATE` | Mock (콘솔 토글) | |
@@ -99,7 +102,7 @@ Vehicle SDK는 차종마다 지원 범위가 다릅니다. 그래서 등록 전�
 1. ~~Pleos TTS 재생이 앱의 오디오 포커스를 가져가는지~~ → 에뮬레이터에서 가져가지 않음을 확인(4장). 실차에서 한 번 더 확인합니다.
 2. ON_DEVICE 모드 영어(en-US): TTS는 확인. STT는 엔진이 en-US로 열리는 것까지 확인했고, **실제 영어 발화의 인식 결과는 아직 확인하지 못했습니다**(에뮬레이터 마이크 입력 필요, `docs/testing.md`).
 3. STT `onUpdated(text, completed=true)`가 누적 문장으로 오는지 구간별로 오는지. 두 경우 모두 처리하도록 짰습니다.
-4. TTS 속도: SDK에 속도 API가 없어서 퇴근 복습 감속(`speechRate`)은 실제 음성에 아직 적용하지 않았습니다.
+4. TTS 속도: SDK에 속도 API가 없어서, 속도 < 1이면(퇴근 복습, "천천히" 명령) 쉼표·문장 사이에 쉼을 넣어 천천히 들리게 합니다(`SpeechChunker`). 실제로 충분히 느리게 들리는지는 확인이 필요합니다.
 5. 다른 앱의 재생 용도(`AudioPlaybackConfiguration.getAudioAttributes()`)가 Pleos 내비 안내에서 `USAGE_ASSISTANCE_NAVIGATION_GUIDANCE`로 보이는지.
 6. 급제동 임계값(13km/h/s), 경고 유지 시간(5초)은 실제 주행 데이터로 조정해야 합니다.
 

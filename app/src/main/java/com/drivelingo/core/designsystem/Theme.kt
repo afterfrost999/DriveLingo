@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.sp
 
 /** 시안에서 뽑은 색. 차량 야간 시인성을 위해 고대비 다크 테마 하나만 둔다. */
@@ -53,18 +54,24 @@ private val colorScheme = darkColorScheme(
     outline = MalchaColors.Outline,
 )
 
+/**
+ * 한국어가 글자 단위로 줄바꿈되면("다시 쓰\n기") 읽기 어려워서 어절(띄어쓰기) 단위로 줄을 바꾼다.
+ * 기기가 지원하지 않으면(Android 13 미만) 기본 줄바꿈으로 동작한다.
+ */
+private val koreanLineBreak = LineBreak.Paragraph.copy(wordBreak = LineBreak.WordBreak.Phrase)
+
 /** 주행 중 한눈에 읽히도록 큰 글자·굵은 제목 위주. */
 private val typography = Typography(
-    displaySmall = TextStyle(fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 42.sp),
-    headlineMedium = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp),
-    headlineSmall = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 32.sp),
-    titleLarge = TextStyle(fontSize = 21.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp),
-    titleMedium = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp),
-    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
-    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
-    labelLarge = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
-    labelMedium = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-    labelSmall = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+    displaySmall = TextStyle(lineBreak = koreanLineBreak, fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 42.sp),
+    headlineMedium = TextStyle(lineBreak = koreanLineBreak, fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp),
+    headlineSmall = TextStyle(lineBreak = koreanLineBreak, fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 32.sp),
+    titleLarge = TextStyle(lineBreak = koreanLineBreak, fontSize = 21.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp),
+    titleMedium = TextStyle(lineBreak = koreanLineBreak, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp),
+    bodyLarge = TextStyle(lineBreak = koreanLineBreak, fontSize = 16.sp, lineHeight = 24.sp),
+    bodyMedium = TextStyle(lineBreak = koreanLineBreak, fontSize = 14.sp, lineHeight = 20.sp),
+    labelLarge = TextStyle(lineBreak = koreanLineBreak, fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+    labelMedium = TextStyle(lineBreak = koreanLineBreak, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+    labelSmall = TextStyle(lineBreak = koreanLineBreak, fontSize = 12.sp, fontWeight = FontWeight.Medium),
 )
 
 @Composable

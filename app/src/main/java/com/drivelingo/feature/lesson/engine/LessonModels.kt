@@ -1,10 +1,12 @@
 package com.drivelingo.feature.lesson.engine
 
+import com.drivelingo.core.audio.Earcon
 import com.drivelingo.core.curriculum.LessonPlan
 import com.drivelingo.core.driving.Interruption
 import com.drivelingo.core.driving.LearningMode
 import com.drivelingo.core.progress.Correction
 import com.drivelingo.core.progress.LessonTally
+import com.drivelingo.core.speech.command.VoiceCommand
 
 /** 한 턴에서 학습자가 하는 활동. 같은 아이템도 운전 상황에 따라 활동이 달라진다. */
 enum class ActivityType { LISTEN, REPEAT, SHORT_ANSWER, LONG_ANSWER, DETAILED_REVIEW }
@@ -21,6 +23,8 @@ data class Turn(
     /** null = 시간 제한 없음. */
     val answerLimitMs: Long?,
     val mode: LearningMode,
+    /** 정답이 없는 내 얘기 질문("How was your day?"). [expectedAnswer] 는 예시일 뿐이라 고쳐 주지 않는다. */
+    val openEnded: Boolean = false,
 ) {
     val expectsAnswer: Boolean get() = activity != ActivityType.LISTEN
 }
@@ -75,6 +79,12 @@ data class LessonState(
      */
     val audioToken: Int = 0,
     val tally: LessonTally = LessonTally(),
+    /** 말 속도 단계. 0 = 수업 기본 속도, 클수록 느리게("천천히" 명령). */
+    val rateStep: Int = 0,
+    /** "듣기만 할게": 이번 수업은 마이크를 쓰지 않는다(동승자). */
+    val listenOnly: Boolean = false,
+    /** 이번 턴에서 받은 음성 명령 수. 잡음이 명령으로 계속 잡혀 같은 턴에 갇히지 않도록 센다. */
+    val commandsThisTurn: Int = 0,
 ) {
     val activeInterruptions: Set<Interruption>
         get() = if (userPaused) signalInterruptions + Interruption.USER_PAUSE else signalInterruptions
@@ -99,14 +109,22 @@ sealed interface LessonEvent {
     data object UserPause : LessonEvent
     data class UserResume(val nowMs: Long) : LessonEvent
     data object Repeat : LessonEvent
+    /** 운전대·화면에서 온 명령(예: 운전대 "다음"). 음성 명령은 [AnswerRecognized] 안에서 엔진이 직접 알아듣는다. */
+    data class Command(val command: VoiceCommand) : LessonEvent
     data object Stop : LessonEvent
 }
 
 /** 엔진이 바깥(TTS·STT·AI·저장소)에 요청하는 일. 실행은 LessonSession 이 한다. */
 sealed interface LessonEffect {
-    data class Speak(val token: Int, val text: String, val rate: Float) : LessonEffect
-    /** [echoGuardMs] 만큼 기다린 뒤 마이크를 연다. TTS 꼬리 소리를 STT 가 다시 인식하지 않도록. */
-    data class Listen(val token: Int, val turn: Turn, val echoGuardMs: Long) : LessonEffect
+    /** [cue] 가 있으면 효과음을 먼저 내고 말한다. */
+    data class Speak(val token: Int, val text: String, val rate: Float, val cue: Earcon? = null) : LessonEffect
+    /**
+     * [cue](말할 차례 '띵')를 낸 뒤 [echoGuardMs] 만큼 기다리고 마이크를 연다.
+     * TTS 꼬리 소리나 효과음을 STT 가 다시 인식하지 않도록.
+     */
+    data class Listen(val token: Int, val turn: Turn, val echoGuardMs: Long, val cue: Earcon? = Earcon.YourTurn) : LessonEffect
+    /** 말 없이 효과음만 낸다(멈춤 '톡'). */
+    data class PlayEarcon(val earcon: Earcon) : LessonEffect
     data object StopAudio : LessonEffect
     data class RequestFeedback(val token: Int, val turn: Turn, val answer: String) : LessonEffect
     data object RequestAudioFocus : LessonEffect

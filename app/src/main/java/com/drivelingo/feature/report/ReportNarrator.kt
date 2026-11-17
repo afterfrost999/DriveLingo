@@ -16,7 +16,7 @@ object ReportNarrator {
             LearningMode.SHORT_ANSWER -> "오늘 길은 막힘없이 달려서 짧게 대답 위주였고"
             LearningMode.REPEAT_AFTER -> "오늘 길은 가다 서다가 많아서 따라 말하기 위주였고"
             LearningMode.LISTEN_ONLY -> "오늘 길은 복잡한 구간이 많아서 듣기 위주였고"
-            LearningMode.DETAILED_REVIEW -> "오늘은 주차 중에 차분히 복습했고"
+            LearningMode.DETAILED_REVIEW -> "오늘은 주차 중에 차분히 연습했고"
             else -> null
         }
         val longPart = if (longTurns > 0) "신호 대기에서 ${countWord(longTurns)} 길게 말했어요" else null

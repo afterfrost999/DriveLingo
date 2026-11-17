@@ -1,5 +1,6 @@
 package com.drivelingo.feature.lesson
 
+import com.drivelingo.core.curriculum.ItemKind
 import com.drivelingo.core.driving.DrivingSituation
 import com.drivelingo.core.driving.DrivingStatus
 import com.drivelingo.core.driving.Interruption
@@ -11,9 +12,16 @@ import com.drivelingo.feature.lesson.engine.LessonState
 /** 화면에 그릴 중앙 음성 상태. 시안의 4가지 상태 + 보조 상태. */
 enum class VoiceVisual { LISTENING, SPEAK_TURN, LONG_SPEAK_TURN, THINKING, PAUSED, QUIET, FINISHED }
 
+/**
+ * 마이크가 실제로 열려 있는 대답 시간. 링을 이 시간 동안 0에서 끝까지 채운다.
+ * [token] 이 바뀌면 새 대답 차례다. [limitMs] 가 null 이면 시간 제한이 없는 긴 대답이라 채우지 않는다.
+ */
+data class ListenWindow(val token: Int, val limitMs: Long?)
+
 /** 주차 중에만 보여 주는 글자 정보. 주행 중에는 음성 전사(transcription)를 화면에 띄우지 않는다. */
 data class LessonDetail(
-    val expression: String,
+    /** null 이면 아직 보여 주지 않는다(복습: 우리말 뜻을 보고 영어를 떠올리는 동안). */
+    val expression: String?,
     val meaning: String,
     val prompt: String,
     val lastAnswer: String?,
@@ -27,6 +35,8 @@ data class LessonUiState(
     val caption: String?,
     val badge: String?,
     val progress: Float,
+    /** 대답 시간 링. null 이면 링은 수업 진행률([progress])을 보여 준다. */
+    val listenTimer: ListenWindow?,
     val isPaused: Boolean,
     val canTogglePause: Boolean,
     val canRepeat: Boolean,
@@ -39,7 +49,7 @@ data class LessonUiState(
 /** 엔진 상태 + 운전 상황 → 화면 상태. 순수 함수. */
 object LessonUiMapper {
 
-    fun map(s: LessonState, driving: DrivingStatus): LessonUiState {
+    fun map(s: LessonState, driving: DrivingStatus, listening: ListenWindow? = null): LessonUiState {
         val turn = s.turn
         val primary = Interruption.primary(s.activeInterruptions)
 
@@ -69,9 +79,14 @@ object LessonUiMapper {
         val showText = !driving.uiRestricted && !driving.restricts(UxRestrictions.NO_VOICE_TRANSCRIPTION)
         val item = s.plan.items.getOrNull(s.itemIndex)
         val detail = if (showText && item != null && turn != null) {
+            // 복습 질문이 영어 표현을 떠올리게 하는 동안에는 답을 화면에 미리 보여 주지 않는다.
+            val recalling = item.kind == ItemKind.REVIEW &&
+                turn.activity !in setOf(ActivityType.LISTEN, ActivityType.REPEAT) &&
+                !turn.prompt.contains(item.target.english) &&
+                s.phase in setOf(LessonPhase.PROMPT, LessonPhase.ANSWER, LessonPhase.THINKING)
             LessonDetail(
-                expression = item.target.english,
-                meaning = item.target.korean,
+                expression = item.target.english.takeUnless { recalling },
+                meaning = item.target.korean.ifBlank { "아침에 다듬은 표현" },
                 prompt = turn.prompt,
                 lastAnswer = s.lastAnswer,
                 feedback = s.feedback?.reply,
@@ -86,6 +101,7 @@ object LessonUiMapper {
             caption = caption,
             badge = badge,
             progress = if (s.phase == LessonPhase.FINISHED) 1f else s.progress,
+            listenTimer = listening?.takeIf { s.phase == LessonPhase.ANSWER && it.limitMs != null },
             isPaused = s.phase == LessonPhase.PAUSED,
             // 안전 사유(전화·방향지시등 등)로 멈춘 동안에는 사용자가 재개할 수 없다. 사용자 일시정지·포커스 상실만 재생 버튼으로 재개.
             canTogglePause = activePhase ||

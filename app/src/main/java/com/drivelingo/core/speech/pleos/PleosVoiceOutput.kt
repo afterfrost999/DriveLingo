@@ -8,6 +8,7 @@ import ai.pleos.playground.tts.listener.OnInitializeListener
 import ai.pleos.playground.tts.listener.OnServerConnectionListener
 import android.content.Context
 import android.util.Log
+import com.drivelingo.core.speech.SpeechChunker
 import com.drivelingo.core.speech.VoiceOutput
 import com.drivelingo.core.speech.VoiceSimulation
 import kotlinx.coroutines.CompletableDeferred
@@ -31,7 +32,8 @@ data class PleosCredentials(val clientId: String, val clientSecret: String) {
  *   서버 합성은 `registerApp()` 이 `onConnected()` 를 부른 뒤에만 된다(공식 가이드).
  * - `speak(text, isFinal = true)` 로 한 문장씩 요청하고 `EventListener.onDone()` / `onStop()` / `onError()` 에서 끝낸다.
  * - 코루틴이 취소되면(수업 중단) 즉시 `stop()` 한다.
- * - SDK 에 말하기 속도 API 가 없어 [rate](퇴근 복습 느리게)는 아직 적용하지 못한다(docs/pleos-sdk-status.md).
+ * - 한국어 설명과 영어 문장이 섞이면 문장마다 언어를 골라 읽는다([SpeechChunker]).
+ * - SDK 에 말하기 속도 API 가 없어 [rate] < 1 이면(퇴근 복습, "천천히") 쉼표·문장 사이에 쉼을 넣어 천천히 들리게 한다.
  *
  * [monitor] 는 차량 시뮬레이터 화면에 "지금 읽는 문장"을 보여 주기 위해서만 쓴다.
  */
@@ -108,21 +110,30 @@ class PleosVoiceOutput(
                 delay(estimateMs(text))
                 return
             }
-            applyLocaleFor(text)
-            val done = CompletableDeferred<Unit>()
-            pending = done
-            try {
-                tts.speak(text, true)
-                if (withTimeoutOrNull(estimateMs(text) * 3 + 5_000) { done.await() } == null) {
-                    Log.w(TAG, "tts did not finish in time; stopping")
-                }
-            } finally {
-                // 정상 종료가 아니면(취소·시간 초과) 재생을 멈춘다.
-                if (!done.isCompleted) stopPlayback()
-                if (pending === done) pending = null
+            val chunks = SpeechChunker.chunks(text, byClause = rate < 0.99f)
+            val gap = SpeechChunker.pauseBetweenMs(rate)
+            chunks.forEachIndexed { i, chunk ->
+                if (i > 0 && gap > 0) delay(gap)
+                applyLocale(if (chunk.korean) Locale.KOREAN else Locale.US)
+                speakOnce(chunk.text)
             }
         } finally {
             monitor.setSpeaking(null)
+        }
+    }
+
+    private suspend fun speakOnce(text: String) {
+        val done = CompletableDeferred<Unit>()
+        pending = done
+        try {
+            tts.speak(text, true)
+            if (withTimeoutOrNull(estimateMs(text) * 3 + 5_000) { done.await() } == null) {
+                Log.w(TAG, "tts did not finish in time; stopping")
+            }
+        } finally {
+            // 정상 종료가 아니면(취소·시간 초과) 재생을 멈춘다.
+            if (!done.isCompleted) stopPlayback()
+            if (pending === done) pending = null
         }
     }
 
@@ -136,9 +147,8 @@ class PleosVoiceOutput(
         runCatching { tts.stop() }.onFailure { Log.w(TAG, "tts stop failed", it) }
     }
 
-    /** 영어 수업이지만 한국어 안내 문장이 섞일 수 있어 문장마다 언어를 고른다. 바뀔 때만 설정한다. */
-    private fun applyLocaleFor(text: String) {
-        val locale = if (text.any { it in '가'..'힣' }) Locale.KOREAN else Locale.US
+    /** 바뀔 때만 언어를 설정한다. */
+    private fun applyLocale(locale: Locale) {
         if (locale != currentLocale) {
             runCatching { tts.setLocale(locale) }.onFailure { Log.w(TAG, "setLocale($locale) failed", it) }
             currentLocale = locale

@@ -31,6 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drivelingo.app.LocalAppContainer
 import com.drivelingo.core.designsystem.MalchaColors
@@ -45,6 +50,13 @@ fun SettingsScreen(onBack: () -> Unit, onRetakeLevelTest: () -> Unit) {
     val settings by container.progress.settings.collectAsStateWithLifecycle()
     val driving by container.drivingMonitor.status.collectAsStateWithLifecycle()
     var confirmReset by remember { mutableStateOf(false) }
+    // 마이크는 저장값이 아니라 실제 권한을 보여준다. 시스템 설정에서 바꾸고 돌아와도 맞도록 화면에 올 때마다 다시 읽는다.
+    val context = LocalContext.current
+    var micGranted by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(context) {
+        micGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        onPauseOrDispose { }
+    }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -65,8 +77,7 @@ fun SettingsScreen(onBack: () -> Unit, onRetakeLevelTest: () -> Unit) {
         ) {
             ToggleCard(
                 title = "출발하면 자동으로 시작",
-                description = "기본은 꺼짐이에요. 시동만 걸었을 때는 소리를 내지 않고, 켜 두면 출발할 때 수업을 시작해요. " +
-                    "(Pleos 자동 재생 정책 검토가 필요한 기능 · docs/policy-review.md)",
+                description = "기본은 꺼져 있어요. 켜 두면 출발할 때 수업을 바로 시작해요. 시동만 걸었을 때는 소리를 내지 않아요.",
                 checked = settings.autoStartOnDeparture,
                 onChange = { on -> container.progress.updateSettings { it.copy(autoStartOnDeparture = on) } },
             )
@@ -79,7 +90,7 @@ fun SettingsScreen(onBack: () -> Unit, onRetakeLevelTest: () -> Unit) {
             MalchaCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
                 Text("마이크", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    if (settings.micPermissionGranted) "허용됨 · 녹음 원본은 저장하지 않아요" else "허용 안 됨 · 듣기 수업만 할 수 있어요",
+                    if (micGranted) "허용됨 · 녹음 원본은 저장하지 않아요" else "허용 안 됨 · 듣기 수업만 할 수 있어요",
                     style = MaterialTheme.typography.bodyMedium, color = MalchaColors.TextSecondary,
                 )
             }
@@ -87,7 +98,7 @@ fun SettingsScreen(onBack: () -> Unit, onRetakeLevelTest: () -> Unit) {
             SecondaryButton("프로토타입 데이터 초기화", onClick = { confirmReset = true }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             Text(
-                "차량 신호: ${if (container.usesMockVehicle) "Mock (테스트 콘솔)" else "CarUxRestrictions 실연동 + 나머지 Mock"}",
+                "차량 신호: ${if (container.usesMockVehicle) "Mock (테스트 콘솔)" else "Pleos 차량 실연동 (내비·시동·네트워크는 Mock)"}",
                 style = MaterialTheme.typography.labelSmall, color = MalchaColors.TextTertiary,
             )
         }
@@ -116,7 +127,17 @@ private fun ToggleCard(title: String, description: String, checked: Boolean, onC
                 Text(description, style = MaterialTheme.typography.bodyMedium, color = MalchaColors.TextSecondary)
             }
             Spacer(Modifier.width(12.dp))
-            Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = MalchaColors.Mint))
+            // 꺼진 상태도 어두운 카드 위에서 보이도록 테두리·손잡이를 밝게 한다.
+            Switch(
+                checked = checked, onCheckedChange = onChange,
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor = MalchaColors.Mint,
+                    checkedThumbColor = MalchaColors.OnMint,
+                    uncheckedTrackColor = MalchaColors.Background,
+                    uncheckedThumbColor = MalchaColors.TextSecondary,
+                    uncheckedBorderColor = MalchaColors.TextTertiary,
+                ),
+            )
         }
     }
 }

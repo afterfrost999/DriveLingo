@@ -18,6 +18,8 @@
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
     <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
     <uses-permission android:name="pleos.car.permission.PRIVATE_CAR_SAFETY" />
+    <!-- CAR_WINDOWS: Wiper(앞 와이퍼 → 비 보정). 전조등(야간 보정)은 CAR_LIGHTS. -->
+    <uses-permission android:name="pleos.car.permission.CAR_WINDOWS" />
 
     <!-- AAOS CarPropertyManager. CAR_SPEED 는 런타임 권한이라 car 모드에서 MainActivity 가 요청한다. -->
     <uses-permission android:name="android.car.permission.CAR_SPEED" />

@@ -8,6 +8,7 @@ import ai.pleos.playground.stt.listener.OnServerConnectionListener
 import ai.pleos.playground.stt.listener.ResultListener
 import android.content.Context
 import android.util.Log
+import com.drivelingo.BuildConfig
 import com.drivelingo.core.speech.ListenRequest
 import com.drivelingo.core.speech.ListenResult
 import com.drivelingo.core.speech.VoiceInput
@@ -41,6 +42,8 @@ class PleosVoiceInput(
     private class Recognition {
         val finals = StringBuilder()
         @Volatile var partial: String? = null
+        /** 디버그: 마이크에 소리가 들어왔는지(0이면 호스트 마이크가 막힌 것) 보려고 최대 음량을 남긴다. */
+        @Volatile var maxRms: Double = 0.0
         val ended = CompletableDeferred<ListenResult>()
 
         @Synchronized fun addFinal(text: String) {
@@ -66,7 +69,9 @@ class PleosVoiceInput(
         override fun onReady() = Unit
         override fun onStartedRecognition() = Unit
         override fun onUpdatedEpdData(on: Long, off: Long) = Unit
-        override fun onUpdatedRms(rms: Double) = Unit
+        override fun onUpdatedRms(rms: Double) {
+            active?.let { if (rms > it.maxRms) it.maxRms = rms }
+        }
 
         override fun onUpdated(stt: String, completed: Boolean) {
             val r = active ?: return
@@ -74,12 +79,18 @@ class PleosVoiceInput(
         }
 
         override fun onEndedRecognition() {
-            active?.let { it.ended.complete(it.result()) }
+            active?.let {
+                val result = it.result()
+                // 사용자 발화는 디버그 빌드에서만 로그에 남긴다.
+                if (BuildConfig.DEBUG) Log.d(TAG, "stt ended maxRms=${it.maxRms} result=$result")
+                it.ended.complete(result)
+            }
         }
 
         override fun onError(errorType: ErrorType) {
-            Log.w(TAG, "stt error $errorType")
-            val r = active ?: return
+            val r = active
+            Log.w(TAG, "stt error $errorType" + if (BuildConfig.DEBUG && r != null) " maxRms=${r.maxRms}" else "")
+            if (r == null) return
             r.ended.complete(
                 when (errorType) {
                     // 시간 안에 말하지 않음 → 무응답(다시 묻기 흐름). 그 밖에는 인식 실패(1회 재시도 흐름).
@@ -140,6 +151,8 @@ class PleosVoiceInput(
             if (!recognition.ended.isCompleted) runCatching { stt.stop() }
             if (active === recognition) active = null
         }
+        // maxRms 가 0 이면 마이크로 소리가 전혀 안 들어온 것이다(에뮬레이터: 호스트 마이크 권한·설정 확인).
+        if (BuildConfig.DEBUG) Log.d(TAG, "listen done maxRms=${recognition.maxRms} result=$result")
         if (result is ListenResult.Recognized) monitor.setHeard(result.text)
         return result
     }

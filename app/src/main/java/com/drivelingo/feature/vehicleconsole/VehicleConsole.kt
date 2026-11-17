@@ -62,7 +62,8 @@ fun VehicleConsoleOverlay() {
         } else {
             SmallFloatingActionButton(
                 onClick = { open = true },
-                modifier = Modifier.align(Alignment.CenterEnd).padding(4.dp),
+                // 화면 가운데 오른쪽은 수업 버튼·코스 칸과 겹쳐서 아래 오른쪽 구석에 둔다.
+                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
                 containerColor = MalchaColors.SurfaceRaised,
                 contentColor = MalchaColors.Amber,
             ) { Icon(Icons.Outlined.DirectionsCar, contentDescription = "차량 시뮬레이터 열기") }
@@ -78,9 +79,11 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
     val status by container.drivingMonitor.status.collectAsStateWithLifecycle()
     val preset by mock.preset.collectAsStateWithLifecycle()
     val nextAnswer by container.voiceSimulation.nextAnswer.collectAsStateWithLifecycle()
+    val nextPhrase by container.voiceSimulation.nextPhrase.collectAsStateWithLifecycle()
     val slowCoach by container.voiceSimulation.slowCoach.collectAsStateWithLifecycle()
     val speaking by container.voiceSimulation.nowSpeaking.collectAsStateWithLifecycle()
     val heard by container.voiceSimulation.lastHeard.collectAsStateWithLifecycle()
+    val earcon by container.voiceSimulation.lastEarcon.collectAsStateWithLifecycle()
     val s = status.signals
 
     BoxWithConstraints(modifier.fillMaxHeight()) {
@@ -109,6 +112,11 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 Info("상황", "${status.situation.label} (원시: ${status.rawSituation.label})")
                 Info("학습 모드", status.mode.label)
                 Info(
+                    "보정",
+                    if (status.conditions.isEmpty()) "없음"
+                    else status.conditions.joinToString { it.label } + " → 한 단계 낮춤",
+                )
+                Info(
                     "CarUx",
                     s.uxRestrictions?.let { ux ->
                         if (!ux.requiresDistractionOptimization) "제한 없음"
@@ -120,12 +128,25 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 Info("음성", if (container.usesPleosVoice) "Pleos STT/TTS (실제 음성)" else "시뮬레이션 (소리 없음)")
                 Info("TTS", speaking ?: "-")
                 Info("STT 마지막", heard ?: "-")
+                Info("효과음 마지막", earcon ?: "-")
                 if (!container.usesMockVehicle) Info("car 모드", "실제: " + CarSignalMerger.REAL_SIGNALS.joinToString() + " · 나머지 Mock")
             }
 
             Section("주행 상황 프리셋") {
                 DrivingPreset.entries.forEach { p ->
                     Chip(p.label, selected = p == preset) { mock.applyPreset(p) }
+                }
+            }
+
+            Section("날씨 · 도로 (상한 한 단계 낮춤)") {
+                Chip("비 (와이퍼)", selected = s.wipersOn == true) {
+                    mock.update { it.copy(wipersOn = if (it.wipersOn == true) false else true) }
+                }
+                Chip("야간 (전조등)", selected = s.headlampsOn == true) {
+                    mock.update { it.copy(headlampsOn = if (it.headlampsOn == true) false else true) }
+                }
+                Chip("초행길", selected = s.unfamiliarRoute) {
+                    mock.update { it.copy(unfamiliarRoute = !it.unfamiliarRoute) }
                 }
             }
 
@@ -164,12 +185,18 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 }
             }
 
-            // 실제 음성(pleos) 모드에서는 인식 결과를 강제로 정할 수 없다.
+            // 인식 실패·무응답 강제는 시뮬레이션 음성에서만. 실제 음성(pleos)에서는 마이크로 직접 재현한다.
             if (!container.usesPleosVoice) {
                 Section("다음 음성 인식 (1회)") {
                     NextAnswer.entries.forEach { a ->
                         Chip(a.label, selected = a == nextAnswer) { container.voiceSimulation.nextAnswer.value = a }
                     }
+                }
+            }
+            // 음성 명령은 두 모드 모두에서 시험할 수 있다(pleos 에서는 실제 STT 대신 이 문장을 들은 것으로 한다).
+            Section("다음에 말할 음성 명령 (1회)") {
+                COMMAND_SAMPLES.forEach { (label, phrase) ->
+                    Chip(label, selected = phrase == nextPhrase) { container.voiceSimulation.nextPhrase.value = phrase }
                 }
             }
 
@@ -181,6 +208,19 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
         }
     }
 }
+
+/** 시뮬레이터에서 고를 수 있는 음성 명령 예시(라벨 → 인식될 문장). 같은 명령의 다른 표현은 VoiceCommandParserTest 참고. */
+private val COMMAND_SAMPLES = listOf(
+    "잠깐" to "Hold on a sec",
+    "다시" to "Sorry, can you say that again?",
+    "다음" to "Skip this one",
+    "천천히" to "Too fast. Slow down please",
+    "한국어로" to "What does that mean?",
+    "모르겠어" to "I don't know",
+    "듣기만" to "I'll just listen",
+    "오늘은 그만" to "That's enough for today",
+    "도움말" to "What can I say?",
+)
 
 @Composable
 private fun Info(label: String, value: String) {

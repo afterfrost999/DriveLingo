@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 /**
  * 화면과 수업이 함께 보는 "지금 운전 상황".
  *
+ * @property mode 운전 상황의 활동 상한에 비·야간·초행길 보정을 적용한 학습 모드.
  * @property uiRestricted 화면 조작 제한 여부. CarUxRestrictions 를 그대로 따르고, 모르면 제한으로 본다.
  */
 data class DrivingStatus(
@@ -21,8 +22,10 @@ data class DrivingStatus(
     val rawSituation: DrivingSituation,
     val ux: UxRestrictions?,
     val signals: DrivingSignals,
+    /** 상한을 한 단계 낮추는 조건(비·야간·초행길). */
+    val conditions: Set<DrivingCondition> = emptySet(),
 ) {
-    val mode: LearningMode get() = situation.mode
+    val mode: LearningMode get() = DrivingConditions.adjust(situation, conditions)
     val uiRestricted: Boolean get() = ux?.requiresDistractionOptimization ?: true
     val isParked: Boolean get() = !uiRestricted && situation == DrivingSituation.PARKED
     fun restricts(flag: Int): Boolean = ux?.has(flag) ?: true
@@ -36,6 +39,7 @@ class DrivingMonitor(
 ) {
     private val history = SpeedHistory()
     private val stabilizer = SituationStabilizer()
+    private val conditionLatch = ConditionLatch()
 
     private val _status = MutableStateFlow(evaluate(source.signals.value))
     val status: StateFlow<DrivingStatus> = _status.asStateFlow()
@@ -57,6 +61,7 @@ class DrivingMonitor(
         history.add(now, signals.speedKmh)
         val raw = SituationClassifier.classify(signals, history)
         val stable = stabilizer.update(raw, now)
-        return DrivingStatus(stable, raw, signals.uxRestrictions, signals)
+        val conditions = conditionLatch.update(DrivingConditions.detect(signals), now)
+        return DrivingStatus(stable, raw, signals.uxRestrictions, signals, conditions)
     }
 }

@@ -18,10 +18,15 @@
 | `LessonPlaybackMapperTest` | 미디어 세션 재생 상태·가능한 동작, 부제에 학습 문장·숫자 없음 |
 | `ProgressTest` | 스트릭(차 안 탄 날 유지), 진도·주차 넘김, 저장소 재시작 후 복원, 랭킹 |
 | `ReportNarratorTest`, `LevelEstimatorTest` | 리포트 문장(조사 포함), 레벨 추천 |
+| `VoiceCommandParserTest` | 음성 명령 10가지의 영어·한국어·로마자 표현 약 190개, 부정("don't stop", "멈추지 마"), 명령으로 오인하면 안 되는 대답, 기대 답 우선, 긴 발화 |
+| `LessonCommandTest` | 다시·다음·천천히/빠르게·한국어로·모르겠어(시범)·오늘은 그만·듣기만·잠깐·도움말 처리, 운전대 "다음", 명령 반복 시 다음으로 |
+| `LessonEarconTest`, `EarconSynthTest` | 효과음이 나는 시점(말할 차례·콤보·멈춤·재개·띵동·완료), 멈춤음을 내지 않는 사유, 0.5초 이내·클릭 없음·콤보 음 상승 |
+| `DrivingConditionsTest` | 비·야간·초행길 감지, 상황별 한 단계 낮춤, 여러 조건도 한 단계, 주차 불변, 간헐 와이퍼·터널 유지 시간 |
+| `SpeechChunkerTest` | 한·영 섞인 문장을 언어별 조각으로, 느린 속도의 쉼표 분리 |
 
 ## 앱에서 손으로 재현하기 — 차량 시뮬레이터
 
-디버그 빌드 화면 오른쪽 가운데의 자동차 버튼을 누르면 시뮬레이터 패널이 열립니다. 패널 위쪽에서 현재 판단 결과(상황, 학습 모드, CarUx, 중단 사유, TTS가 읽는 문장, STT 결과)를 실시간으로 볼 수 있습니다.
+디버그 빌드 화면 오른쪽 가운데의 자동차 버튼을 누르면 시뮬레이터 패널이 열립니다. 패널 위쪽에서 현재 판단 결과(상황, 학습 모드, 비·야간 보정, CarUx, 중단 사유, TTS가 읽는 문장, STT 결과, 마지막 효과음)를 실시간으로 볼 수 있습니다.
 
 | 재현할 것 | 조작 |
 |---|---|
@@ -36,6 +41,9 @@
 | AI 응답 지연 | `AI 응답 지연` → 6초 뒤 로컬 피드백으로 넘어갑니다 |
 | 음성 인식 실패 / 무응답 | `다음 음성 인식`에서 `인식 실패`·`무응답` (1회) → 한 번 다시 묻고, 그다음에는 모범 답안을 들려줍니다 |
 | 상태를 알 수 없음 | `상태 불명` → 안전 제한 모드(듣기만) |
+| 비·야간·초행길 | `날씨 · 도로`에서 `비 (와이퍼)`·`야간 (전조등)`·`초행길` → `보정`에 표시되고 학습 모드가 한 단계 낮아집니다(안정 주행: 짧은 대답 → 따라 말하기). 끈 뒤에도 비는 2분, 야간은 1분 유지됩니다 |
+| 음성 명령 | `다음에 말할 음성 명령`에서 고르면 다음 말할 차례에 그 문장을 들은 것으로 합니다(잠깐·다시·다음·천천히·한국어로·모르겠어·듣기만·오늘은 그만·도움말). 다른 표현은 `VoiceCommandParserTest`에 있습니다 |
+| 효과음 | 시뮬레이션 음성에서는 소리 없이 `효과음 마지막`에 표시됩니다. 말할 차례 '띵', 맞은 답마다 콤보 1~5단, 일시정지·방향지시등 '톡', 재개, 정차 질문 '띵동', 마무리 멜로디 |
 | 운행 종료 | `시동 끔` → 수업이 중단 지점을 저장하고 홈으로 갑니다. 다시 시작하면 "이어서 하기"가 나옵니다 |
 
 ## adb로 재현하기 (디버그 빌드)
@@ -52,6 +60,10 @@ $A --es focus lost               # gained | transient | duck | lost
 $A --es network off              # on | off
 $A --es answer fail              # auto | fail | silent (다음 1회)
 $A --es slowcoach on             # on | off
+$A --es say "Can you say that again?"   # 다음 말할 차례에 이 문장을 들은 것으로 함(음성 명령 시험)
+$A --es wiper on                 # on | off  (비 → 한 단계 낮춤)
+$A --es headlamp on              # on | off  (야간 → 한 단계 낮춤)
+$A --es newroute on              # on | off  (초행길 → 한 단계 낮춤)
 adb logcat -s DebugVehicle       # 적용 결과 확인
 ```
 
@@ -83,7 +95,7 @@ scripts/setup-pleos-emulator.sh        # VS Code: Tasks: Run Task → "말차: P
 ### 2. car 모드로 실행하고 CarUxRestrictions 확인
 
 ```bash
-AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car
+AVD=Pleos_Connect_v2.1 scripts/run.sh
 scripts/check-car-ux.sh                # VS Code: "말차: Pleos 에뮬레이터에서 CarUx 확인"
 ```
 
@@ -111,7 +123,7 @@ Pleos Connect v2.1의 UX 제한 설정(`dumpsys car_service --services CarUxRest
 ### 3. 실제 신호·음성·미디어 버튼 확인 (미검증 항목 체크리스트)
 
 ```bash
-AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
+AVD=Pleos_Connect_v2.1 scripts/run.sh
 adb logcat -s CarUxRestrictions CarProperty PleosVehicle AudioFocus PleosTts PleosStt LessonMedia
 ```
 
@@ -124,7 +136,7 @@ adb logcat -s CarUxRestrictions CarProperty PleosVehicle AudioFocus PleosTts Ple
 | 경고등 | Virtual Console에서 경고등 켜기(`PUT /vehicle/telltales/simulator?type=MasterWarning&state=On&color=Red`) | 5초 중단 후 켜져 있어도 재개. `중단 사유`에 차량 경고(확인함) |
 | 속도·기어 | `scripts/check-car-ux.sh` 또는 Virtual Console | 시뮬레이터 패널 `속도·기어`가 실제 값으로 바뀜 |
 | 실제 음성 | 주차 중 수업 시작 | TTS가 실제로 들리고(확인함), 말할 차례에 마이크가 열려 인식 결과가 `STT 마지막`에 표시 |
-| 마이크 입력 | 에뮬레이터를 `-allow-host-audio`로 켜기(`scripts/run.sh`가 붙임) | 이 옵션이 없으면 에뮬레이터가 마이크 입력을 0으로 채워 STT가 아무것도 듣지 못합니다. macOS에서 에뮬레이터를 띄운 앱(터미널·VS Code)에 마이크 권한이 있어야 합니다(시스템 설정 → 개인정보 보호 및 보안 → 마이크) |
+| 마이크 입력 | 에뮬레이터를 `-allow-host-audio`로 켜고 `adb emu avd hostmicon`(`scripts/run.sh`가 둘 다 함) | 둘 중 하나라도 빠지면 에뮬레이터가 마이크 입력을 0으로 채워 STT가 아무것도 듣지 못합니다. hostmicon은 재부팅하면 풀립니다. 디버그 빌드의 `PleosStt` 로그 `maxRms`가 5 안팎으로 고정이면 무음입니다. macOS에서 에뮬레이터를 띄운 앱(터미널·VS Code)에 마이크 권한이 있어야 합니다(시스템 설정 → 개인정보 보호 및 보안 → 마이크) |
 | TTS와 포커스 | 수업 중 `AudioFocus` 로그 | 코치가 말할 때 `focus change ... LOST_TRANSIENT`가 **나오지 않아야** 합니다(에뮬레이터 확인함). 나오면 TTS 재생 중의 포커스 상실을 무시하도록 바꿔야 합니다 |
 | 내비 안내 | 내비 경로 안내 중 음성 안내 | 안내 동안 멈춤 |
 | 운전대 키 | 아래 adb 명령 또는 에뮬레이터 미디어 키 | 일시정지·재개·다시 듣기 |

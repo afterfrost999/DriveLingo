@@ -55,6 +55,10 @@ class DebugVehicleReceiver(private val container: AppContainer) : BroadcastRecei
             mock.update { it.copy(audioFocus = focus) }
         }
         intent.getStringExtra("network")?.let { v -> mock.update { it.copy(networkAvailable = v.isOn()) } }
+        // 비·야간·초행길 보정: --es wiper on|off, --es headlamp on|off, --es newroute on|off
+        intent.getStringExtra("wiper")?.let { v -> mock.update { it.copy(wipersOn = v.isOn()) } }
+        intent.getStringExtra("headlamp")?.let { v -> mock.update { it.copy(headlampsOn = v.isOn()) } }
+        intent.getStringExtra("newroute")?.let { v -> mock.update { it.copy(unfamiliarRoute = v.isOn()) } }
         intent.getStringExtra("answer")?.let { v ->
             sim.nextAnswer.value = when (v.lowercase()) {
                 "fail" -> NextAnswer.NOT_RECOGNIZED
@@ -63,6 +67,8 @@ class DebugVehicleReceiver(private val container: AppContainer) : BroadcastRecei
             }
         }
         intent.getStringExtra("slowcoach")?.let { v -> sim.slowCoach.value = v.isOn() }
+        // 다음 말할 차례에 이 문장을 들은 것으로 한다(음성 명령 시험). 예: --es say "Can you say that again?"
+        intent.getStringExtra("say")?.let { v -> sim.nextPhrase.value = v }
         Log.i(TAG, "applied ${intent.extras?.keySet()?.joinToString()} → ${container.drivingMonitor.status.value.situation}")
     }
 
