@@ -176,7 +176,8 @@ object LessonEngine {
             return speak(s.copy(phase = PROMPT, retries = s.retries + 1), "$lead ${turn.prompt}")
         }
         // 무응답·인식 실패는 운전 때문일 수 있으므로 콤보를 끊지 않고 모범 답안만 들려준다.
-        val feedback = CoachFeedback("That's okay. You can say: ${turn.expectedAnswer}", correct = false)
+        val example = if (turn.openEnded) "For example" else "You can say"
+        val feedback = CoachFeedback("That's okay. $example: ${turn.expectedAnswer}", correct = false)
         return speak(s.copy(phase = FEEDBACK, feedback = feedback), feedback.reply)
     }
 

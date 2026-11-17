@@ -23,6 +23,8 @@ data class Turn(
     /** null = 시간 제한 없음. */
     val answerLimitMs: Long?,
     val mode: LearningMode,
+    /** 정답이 없는 내 얘기 질문("How was your day?"). [expectedAnswer] 는 예시일 뿐이라 고쳐 주지 않는다. */
+    val openEnded: Boolean = false,
 ) {
     val expectsAnswer: Boolean get() = activity != ActivityType.LISTEN
 }

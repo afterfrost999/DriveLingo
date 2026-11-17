@@ -1,5 +1,6 @@
 package com.drivelingo.feature.lesson
 
+import com.drivelingo.core.curriculum.ItemKind
 import com.drivelingo.core.driving.DrivingSituation
 import com.drivelingo.core.driving.DrivingStatus
 import com.drivelingo.core.driving.Interruption
@@ -19,7 +20,8 @@ data class ListenWindow(val token: Int, val limitMs: Long?)
 
 /** 주차 중에만 보여 주는 글자 정보. 주행 중에는 음성 전사(transcription)를 화면에 띄우지 않는다. */
 data class LessonDetail(
-    val expression: String,
+    /** null 이면 아직 보여 주지 않는다(복습: 우리말 뜻을 보고 영어를 떠올리는 동안). */
+    val expression: String?,
     val meaning: String,
     val prompt: String,
     val lastAnswer: String?,
@@ -77,9 +79,14 @@ object LessonUiMapper {
         val showText = !driving.uiRestricted && !driving.restricts(UxRestrictions.NO_VOICE_TRANSCRIPTION)
         val item = s.plan.items.getOrNull(s.itemIndex)
         val detail = if (showText && item != null && turn != null) {
+            // 복습 질문이 영어 표현을 떠올리게 하는 동안에는 답을 화면에 미리 보여 주지 않는다.
+            val recalling = item.kind == ItemKind.REVIEW &&
+                turn.activity !in setOf(ActivityType.LISTEN, ActivityType.REPEAT) &&
+                !turn.prompt.contains(item.target.english) &&
+                s.phase in setOf(LessonPhase.PROMPT, LessonPhase.ANSWER, LessonPhase.THINKING)
             LessonDetail(
-                expression = item.target.english,
-                meaning = item.target.korean,
+                expression = item.target.english.takeUnless { recalling },
+                meaning = item.target.korean.ifBlank { "아침에 다듬은 표현" },
                 prompt = turn.prompt,
                 lastAnswer = s.lastAnswer,
                 feedback = s.feedback?.reply,

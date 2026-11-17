@@ -206,7 +206,7 @@ private fun Controls(state: LessonUiState, onTogglePause: () -> Unit, onRepeat: 
 @Composable
 private fun DetailCard(detail: LessonDetail, modifier: Modifier = Modifier) {
     MalchaCard(modifier.fillMaxWidth()) {
-        DetailLine("오늘의 표현", detail.expression)
+        DetailLine("오늘의 표현", detail.expression ?: "영어로 떠올려 보세요", if (detail.expression == null) MalchaColors.TextSecondary else MalchaColors.TextPrimary)
         Text(detail.meaning, style = MaterialTheme.typography.bodyMedium, color = MalchaColors.TextSecondary)
         Spacer(Modifier.height(12.dp))
         DetailLine("코치", detail.prompt)

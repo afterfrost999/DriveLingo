@@ -40,6 +40,7 @@ object LocalFeedback {
                 CoachFeedback("Almost. Listen again. $expected", correct = false, recast = Correction(answer, expected))
             }
         }
+        if (turn.openEnded) return CoachFeedback("Thanks for sharing. For example, you could also say: $expected", correct = true)
         return CoachFeedback("Good. Here's one more way to say it. $expected", correct = true)
     }
 }

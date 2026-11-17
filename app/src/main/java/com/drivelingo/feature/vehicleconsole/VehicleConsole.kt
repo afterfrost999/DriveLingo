@@ -62,7 +62,8 @@ fun VehicleConsoleOverlay() {
         } else {
             SmallFloatingActionButton(
                 onClick = { open = true },
-                modifier = Modifier.align(Alignment.CenterEnd).padding(4.dp),
+                // 화면 가운데 오른쪽은 수업 버튼·코스 칸과 겹쳐서 아래 오른쪽 구석에 둔다.
+                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
                 containerColor = MalchaColors.SurfaceRaised,
                 contentColor = MalchaColors.Amber,
             ) { Icon(Icons.Outlined.DirectionsCar, contentDescription = "차량 시뮬레이터 열기") }

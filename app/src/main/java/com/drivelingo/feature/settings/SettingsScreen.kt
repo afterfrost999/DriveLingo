@@ -77,8 +77,7 @@ fun SettingsScreen(onBack: () -> Unit, onRetakeLevelTest: () -> Unit) {
         ) {
             ToggleCard(
                 title = "출발하면 자동으로 시작",
-                description = "기본은 꺼짐이에요. 시동만 걸었을 때는 소리를 내지 않고, 켜 두면 출발할 때 수업을 시작해요. " +
-                    "(Pleos 자동 재생 정책 검토가 필요한 기능 · docs/policy-review.md)",
+                description = "기본은 꺼져 있어요. 켜 두면 출발할 때 수업을 바로 시작해요. 시동만 걸었을 때는 소리를 내지 않아요.",
                 checked = settings.autoStartOnDeparture,
                 onChange = { on -> container.progress.updateSettings { it.copy(autoStartOnDeparture = on) } },
             )
@@ -128,7 +127,17 @@ private fun ToggleCard(title: String, description: String, checked: Boolean, onC
                 Text(description, style = MaterialTheme.typography.bodyMedium, color = MalchaColors.TextSecondary)
             }
             Spacer(Modifier.width(12.dp))
-            Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = MalchaColors.Mint))
+            // 꺼진 상태도 어두운 카드 위에서 보이도록 테두리·손잡이를 밝게 한다.
+            Switch(
+                checked = checked, onCheckedChange = onChange,
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor = MalchaColors.Mint,
+                    checkedThumbColor = MalchaColors.OnMint,
+                    uncheckedTrackColor = MalchaColors.Background,
+                    uncheckedThumbColor = MalchaColors.TextSecondary,
+                    uncheckedBorderColor = MalchaColors.TextTertiary,
+                ),
+            )
         }
     }
 }

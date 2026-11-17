@@ -29,19 +29,20 @@ object ActivityPlanner {
             val prompt = if (item.kind == ItemKind.INTRODUCE) {
                 // 표현이 이미 문장 부호로 끝나면(?, .) 마침표를 덧붙이지 않는다("…again?. Repeat" 방지).
                 val sentence = if (target.trimEnd().lastOrNull() in SENTENCE_END) target.trimEnd() else "$target."
-                "New phrase. $sentence Repeat after me. $target"
+                "Today's phrase. $sentence Repeat after me. $target"
             } else {
                 "Repeat after me. $target"
             }
             return Turn(item.id, ActivityType.REPEAT, prompt, target, REPEAT_LIMIT_MS, effective)
         }
+        val openEnded = item.kind == ItemKind.PERSONAL
         return when (effective) {
             LearningMode.SHORT_ANSWER ->
-                Turn(item.id, ActivityType.SHORT_ANSWER, item.shortQuestion, item.modelAnswer, SHORT_LIMIT_MS, effective)
+                Turn(item.id, ActivityType.SHORT_ANSWER, item.shortQuestion, item.modelAnswer, SHORT_LIMIT_MS, effective, openEnded)
             LearningMode.LONG_ANSWER ->
-                Turn(item.id, ActivityType.LONG_ANSWER, item.longQuestion, item.modelAnswer, null, effective)
+                Turn(item.id, ActivityType.LONG_ANSWER, item.longQuestion, item.modelAnswer, null, effective, openEnded)
             LearningMode.DETAILED_REVIEW ->
-                Turn(item.id, ActivityType.DETAILED_REVIEW, item.shortQuestion, item.modelAnswer, DETAILED_LIMIT_MS, effective)
+                Turn(item.id, ActivityType.DETAILED_REVIEW, item.shortQuestion, item.modelAnswer, DETAILED_LIMIT_MS, effective, openEnded)
             else -> error("handled above: $effective")
         }
     }

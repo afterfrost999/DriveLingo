@@ -12,7 +12,18 @@ enum class Level(val code: String, val title: String, val cefr: String, val them
 
 enum class CommuteType(val label: String) { MORNING("출근"), EVENING("퇴근") }
 
-data class Expression(val english: String, val korean: String)
+/**
+ * 수업에서 연습하는 표현 하나.
+ * @param korean 우리말 뜻. 아침에 교정된 문장처럼 뜻이 따로 없으면 빈 문자열.
+ * @param cue 이 표현이 나오게 하는 상황 질문("…What do you say?"). 짧은 대답 문항에 쓴다.
+ * @param partner 롤플레이에서 상대(동료)가 먼저 하는 말. 이 표현이 자연스러운 대답이 되도록 쓴다.
+ */
+data class Expression(
+    val english: String,
+    val korean: String,
+    val cue: String = "",
+    val partner: String = "",
+)
 
 enum class ItemKind {
     /** 새 표현 소개 → 마이크 모드에서는 따라 말하기로 이어진다. */

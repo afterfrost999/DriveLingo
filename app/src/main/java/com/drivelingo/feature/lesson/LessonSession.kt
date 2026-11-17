@@ -166,6 +166,7 @@ class LessonSession(
                     val request = CoachRequest(
                         level = plan.level, itemId = effect.turn.itemId, activity = effect.turn.activity,
                         question = effect.turn.prompt, expectedAnswer = effect.turn.expectedAnswer, answer = effect.answer,
+                        openEnded = effect.turn.openEnded,
                     )
                     val reply = withTimeoutOrNull(COACH_TIMEOUT_MS) {
                         runCatching { coach.feedback(request) }

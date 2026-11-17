@@ -15,7 +15,7 @@ Pleos Connect v2.1 에뮬레이터에서 동작을 확인했습니다(`plan.md`,
 scripts/setup-pleos-emulator.sh      # 처음 한 번: Pleos Connect v2.1 AVD 설치 (라이선스 동의 필요, 약 4.7GB)
 AVD=Pleos_Connect_v2.1 scripts/run.sh   # 에뮬레이터 켜기(마이크 입력 포함) → 빌드·설치 → 실행
 scripts/check-car-ux.sh              # 주차 ↔ 주행에 따라 CarUxRestrictions 가 바뀌는지 확인
-./gradlew :app:testDebugUnitTest     # 단위 테스트 129개
+./gradlew :app:testDebugUnitTest     # 단위 테스트 137개
 ./gradlew assembleRelease            # 시뮬레이터 없는 빌드 (debug 키 서명)
 ```
 
