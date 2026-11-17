@@ -1,6 +1,7 @@
 #!/bin/bash
 # 에뮬레이터가 없으면 켜고, 부팅을 기다린 뒤 디버그 앱을 설치·실행한다.
 # 사용: scripts/run.sh [gradle 옵션...]   예) scripts/run.sh -Pdrivelingo.vehicleSource=car
+#      Pleos 실연동: AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
 # AVD 지정: AVD=U_Pixel_2_ scripts/run.sh   (기본: 첫 번째 AVD)
 set -euo pipefail
 
@@ -17,7 +18,8 @@ if ! "$ADB" devices | grep -qE "^emulator-|\s(device|offline)$" && ! pgrep -f "e
     exit 1
   fi
   echo "에뮬레이터 시작: $AVD"
-  nohup "$EMULATOR" -avd "$AVD" >/dev/null 2>&1 &
+  # -allow-host-audio: 없으면 에뮬레이터가 마이크 입력을 0으로 채워 STT(음성 인식)가 아무것도 듣지 못한다.
+  nohup "$EMULATOR" -avd "$AVD" -allow-host-audio >/dev/null 2>&1 &
 fi
 
 echo "부팅 대기 중... (최대 5분)"

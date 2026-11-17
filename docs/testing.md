@@ -11,6 +11,11 @@
 | `LessonEngineTest` (22개) | 상태 전환, 에코 가드, 늦게 온 콜백 무시, 중단·재개 지연, 재개 시 모드 재확인, 긴 대답 끊지 않기, AI 타임아웃·오프라인 대체, 인식 실패 재시도, 포커스 영구 상실 시 수동 재개, 중단 지점 저장·복원, 종료 |
 | `SituationClassifierTest` (10개) | 6가지 상황 판단, CarUx 모름 → 안전 모드, 보수적 판단, 안정화, 중단 사유 우선순위 |
 | `LessonUiMapperTest` | 상태별 화면 문구·색, 주차 중에만 텍스트 표시 |
+| `LessonControllerTest` | 시작/재생 전에는 수업이 시작되지 않음, 화면과 미디어 버튼이 같은 수업을 조작, 시동 꺼짐 → 중단 |
+| `VehicleEventsTest` | 새 경고만 5초 중단, 급제동(감속도·브레이크·오래된 표본), 출발 시점 |
+| `CarSignalMergerTest` | car 모드에서 실제 값 우선, 못 읽으면 Mock 대신 안전한 기본값, 기어 코드 변환 |
+| `AudioEnvironmentRulesTest` | 포커스 변화·요청 결과 변환, 재생 용도로 내비 안내, 오디오 모드로 전화 감지 |
+| `LessonPlaybackMapperTest` | 미디어 세션 재생 상태·가능한 동작, 부제에 학습 문장·숫자 없음 |
 | `ProgressTest` | 스트릭(차 안 탄 날 유지), 진도·주차 넘김, 저장소 재시작 후 복원, 랭킹 |
 | `ReportNarratorTest`, `LevelEstimatorTest` | 리포트 문장(조사 포함), 레벨 추천 |
 
@@ -54,3 +59,82 @@ adb logcat -s DebugVehicle       # 적용 결과 확인
 
 - 수업 세션은 `LessonViewModel`이 갖고 있어서, 회전하거나 창 크기가 바뀌어도 수업이 끊기지 않습니다.
 - 확인 방법: 에뮬레이터 회전 버튼을 누르거나 `adb shell settings put system user_rotation 1`(가로) / `0`(세로)을 실행합니다. 리사이즈는 `adb shell wm size 1920x720`(차량 와이드 비율), 되돌릴 때는 `adb shell wm size reset`입니다.
+
+## Pleos Connect 에뮬레이터에서 확인하기
+
+### 1. 설치 (한 번만)
+
+```bash
+scripts/setup-pleos-emulator.sh        # VS Code: Tasks: Run Task → "말차: Pleos Connect 에뮬레이터 설치"
+```
+
+- 공식 절차(Android Studio → SDK Manager → SDK Update Sites에 Pleos 이미지 URL 추가 → Automotive / Pleos Connect v2.1.0 AVD 생성)를 터미널에서 똑같이 합니다.
+  Mac(Apple Silicon)은 `crp-arm64-sys-img.xml`, Windows/Linux는 `crp-sys-img.xml` 이미지를 씁니다.
+- 이미지는 약 4.7GB이고, **42dot SDK 라이선스 전문을 보여 준 뒤 동의해야** 설치합니다.
+- AVD 설정은 공식 가이드대로 맞춥니다. **Cold boot 강제**(Quick boot이면 VHAL을 못 씁니다), RAM 4GB, 하드웨어 그래픽, 마이크 입력을 켭니다.
+- 화면은 이미지에 들어 있는 기기 정의 `Pleos_Connect_v2_0`(2560×1440, mdpi)으로 만듭니다. 일반 Automotive 기기(1024×768)로 만들면 홈·클러스터·공조 바가 겹쳐 화면이 깨집니다.
+- 내려받기가 멈추면 60초 뒤 끊고 이어 받습니다. 중간에 멈춰도 다시 실행하면 이어 받습니다.
+- 공식 권장 사양은 외장 GPU입니다(최소 RTX 3060 Laptop 6GB급). Apple M2(16GB)에서도 약 20초 만에 부팅되고 정상 동작했습니다(2026-11-16).
+- Android Studio로 설치해도 됩니다. 이때도 AVD 이름을 `Pleos_Connect_v2.1`로 하면 아래 명령을 그대로 쓸 수 있습니다.
+
+화면 크기: Pleos 디스플레이는 2560×1440·160dpi라 1dp = 1px입니다. 앱은 디스플레이 짧은 변 기준으로 dp·sp를 키웁니다(`DisplayScale`, 1440dp → 1.8배).
+그래서 본문 글자가 Pleos 시스템 UI(약 28~30px)와 비슷하게 나오고, 2:1 가로 창은 약 934×672dp 화면처럼 그려집니다. 일반 에뮬레이터·휴대폰은 1배입니다.
+
+### 2. car 모드로 실행하고 CarUxRestrictions 확인
+
+```bash
+AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car
+scripts/check-car-ux.sh                # VS Code: "말차: Pleos 에뮬레이터에서 CarUx 확인"
+```
+
+`check-car-ux.sh`는 기어·속도를 바꿔 주차 → 정차 → 주행(60km/h) → 주차를 만들고, 단계마다 플랫폼 상태(`dumpsys car_service`)와 앱이 받은 값(`logcat -s CarUxRestrictions`)을 나란히 보여 줍니다.
+
+- Pleos Connect 이미지는 **user 빌드**라 `cmd car_service inject-vhal-event`가 막혀 있습니다(`requires non-user build`, root도 안 됨).
+  그래서 스크립트는 **Pleos Connect Virtual Console의 HTTP API**로 값을 넣습니다(`adb forward tcp:8088 tcp:8088` 후 `PUT /vehicle/gear?gear=Drive`, `PUT /vehicle/controls?speed=60`).
+  콘솔은 브라우저 세션이 살아 있을 때만 입력을 받아서, 스크립트가 확인하는 동안 세션 신호(`POST /browser/session`)를 1초마다 보냅니다.
+- 브라우저에서 http://127.0.0.1:8088/ 을 열어 손으로 바꿔도 결과는 같습니다. 일반 AAOS 에뮬레이터(userdebug)에서는 VHAL 주입을 씁니다.
+
+Pleos Connect v2.1의 UX 제한 설정(`dumpsys car_service --services CarUxRestrictionsManagerService`)은 아래와 같습니다.
+일반 AAOS 기본값(주행 중 `FULLY_RESTRICTED`=511)과 달리 **정차·주행 모두 `NO_VIDEO|NO_SETUP`(0x50=80)** 입니다.
+앱은 개별 플래그가 아니라 `requiresDistractionOptimization`으로 화면을 제한하므로 결과는 같습니다.
+
+| 단계 | 플랫폼 주행 상태 | 기대 결과 (2026-11-16 확인) |
+|---|---|---|
+| 주차 (P, 0km/h) | PARKED(0) | `requiresDO=false active=0`, 화면 텍스트·설정 표시 |
+| 정차 (D, 0km/h) | IDLING(1) | `requiresDO=true active=80 [NO_VIDEO, NO_SETUP]`, "주차 후 이어서 할게요" 화면 |
+| 주행 (D, 60km/h) | MOVING(2) | 정차와 같은 값이라 앱 로그는 새로 찍히지 않음(변화 없음) |
+| 다시 주차 | PARKED(0) | `requiresDO=false active=0`, 제한 해제 |
+
+로그가 `unknown`이면 Car 서비스에 연결하지 못한 것입니다.
+이때 앱은 안전 제한 모드로 동작합니다. 일반 에뮬레이터이거나 cold boot가 아닌 경우를 의심하세요.
+
+### 3. 실제 신호·음성·미디어 버튼 확인 (미검증 항목 체크리스트)
+
+```bash
+AVD=Pleos_Connect_v2.1 scripts/run.sh -Pdrivelingo.vehicleSource=car -Pdrivelingo.voiceSource=pleos
+adb logcat -s CarUxRestrictions CarProperty PleosVehicle AudioFocus PleosTts PleosStt LessonMedia
+```
+
+| 확인할 것 | 방법 | 기대 결과 |
+|---|---|---|
+| 속도 권한 | 첫 실행 | 차량 속도 권한 요청이 "위치 정보 액세스"로 뜹니다(AAOS에서 `CAR_SPEED`는 위치 권한 그룹). 허용하면 `CarProperty: PERF_VEHICLE_SPEED subscribed=true`. adb로 줄 때는 앱이 도는 사용자(보통 10)를 지정합니다: `adb shell pm grant --user $(adb shell am get-current-user) com.drivelingo android.car.permission.CAR_SPEED` |
+| Vehicle SDK 지원 여부 | 실행 직후 로그 | `turn signal / brake pedal / telltales supported (READ...)`. 지원하지 않으면 "treated as unknown" |
+| 방향지시등 | Virtual Console에서 지시등 켜기(`PUT /vehicle/turn-signal?mode=BlinkLeft`) | 수업이 즉시 멈추고, 끄면 이어서 함. 시뮬레이터 패널 `중단 사유`에 방향지시등(확인함). Pleos가 측후방 카메라 창을 함께 띄웁니다 |
+| 급제동 | Virtual Console에서 속도를 빠르게 낮추며 브레이크 | 1초 중단 |
+| 경고등 | Virtual Console에서 경고등 켜기(`PUT /vehicle/telltales/simulator?type=MasterWarning&state=On&color=Red`) | 5초 중단 후 켜져 있어도 재개. `중단 사유`에 차량 경고(확인함) |
+| 속도·기어 | `scripts/check-car-ux.sh` 또는 Virtual Console | 시뮬레이터 패널 `속도·기어`가 실제 값으로 바뀜 |
+| 실제 음성 | 주차 중 수업 시작 | TTS가 실제로 들리고(확인함), 말할 차례에 마이크가 열려 인식 결과가 `STT 마지막`에 표시 |
+| 마이크 입력 | 에뮬레이터를 `-allow-host-audio`로 켜기(`scripts/run.sh`가 붙임) | 이 옵션이 없으면 에뮬레이터가 마이크 입력을 0으로 채워 STT가 아무것도 듣지 못합니다. macOS에서 에뮬레이터를 띄운 앱(터미널·VS Code)에 마이크 권한이 있어야 합니다(시스템 설정 → 개인정보 보호 및 보안 → 마이크) |
+| TTS와 포커스 | 수업 중 `AudioFocus` 로그 | 코치가 말할 때 `focus change ... LOST_TRANSIENT`가 **나오지 않아야** 합니다(에뮬레이터 확인함). 나오면 TTS 재생 중의 포커스 상실을 무시하도록 바꿔야 합니다 |
+| 내비 안내 | 내비 경로 안내 중 음성 안내 | 안내 동안 멈춤 |
+| 운전대 키 | 아래 adb 명령 또는 에뮬레이터 미디어 키 | 일시정지·재개·다시 듣기 |
+
+미디어 버튼은 일반 에뮬레이터에서도 확인할 수 있습니다.
+
+```bash
+adb shell cmd media_session dispatch play-pause   # 재생 중 → 일시정지, 일시정지 → 재개
+adb shell cmd media_session dispatch play         # 수업이 없으면 새 수업 시작 (사용자 동작)
+adb shell cmd media_session dispatch previous     # 마지막 문장 다시 듣기
+adb shell cmd media_session dispatch stop         # 중단 지점 저장 후 멈춤
+adb shell dumpsys media_session | grep -A5 LessonMedia   # 재생 상태·메타데이터 확인
+```

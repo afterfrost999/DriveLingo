@@ -46,6 +46,7 @@ import com.drivelingo.core.speech.NextAnswer
 import com.drivelingo.core.vehicle.AudioFocus
 import com.drivelingo.core.vehicle.TurnSignal
 import com.drivelingo.core.vehicle.UxRestrictions
+import com.drivelingo.core.vehicle.car.CarSignalMerger
 import com.drivelingo.core.vehicle.mock.DrivingPreset
 
 /**
@@ -96,7 +97,7 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("차량 시뮬레이터 (Mock)", style = MaterialTheme.typography.titleMedium, color = MalchaColors.Amber, modifier = Modifier.weight(1f))
+                Text(if (container.usesMockVehicle) "차량 시뮬레이터 (Mock)" else "차량 시뮬레이터 (car)", style = MaterialTheme.typography.titleMedium, color = MalchaColors.Amber, modifier = Modifier.weight(1f))
                 IconButton(onClick = onClose) { Icon(Icons.Filled.Close, contentDescription = "닫기") }
             }
 
@@ -116,9 +117,10 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 )
                 Info("속도·기어", "${s.speedKmh?.let { "%.0f".format(it) } ?: "?"} km/h · ${s.gear}")
                 Info("중단 사유", InterruptionDetector.detect(s).joinToString { it.label }.ifEmpty { "없음" })
+                Info("음성", if (container.usesPleosVoice) "Pleos STT/TTS (실제 음성)" else "시뮬레이션 (소리 없음)")
                 Info("TTS", speaking ?: "-")
                 Info("STT 마지막", heard ?: "-")
-                if (!container.usesMockVehicle) Info("모드", "car: CarUx 는 실제 값, 나머지는 Mock")
+                if (!container.usesMockVehicle) Info("car 모드", "실제: " + CarSignalMerger.REAL_SIGNALS.joinToString() + " · 나머지 Mock")
             }
 
             Section("주행 상황 프리셋") {
@@ -162,9 +164,12 @@ private fun VehicleConsolePanel(onClose: () -> Unit, modifier: Modifier = Modifi
                 }
             }
 
-            Section("다음 음성 인식 (1회)") {
-                NextAnswer.entries.forEach { a ->
-                    Chip(a.label, selected = a == nextAnswer) { container.voiceSimulation.nextAnswer.value = a }
+            // 실제 음성(pleos) 모드에서는 인식 결과를 강제로 정할 수 없다.
+            if (!container.usesPleosVoice) {
+                Section("다음 음성 인식 (1회)") {
+                    NextAnswer.entries.forEach { a ->
+                        Chip(a.label, selected = a == nextAnswer) { container.voiceSimulation.nextAnswer.value = a }
+                    }
                 }
             }
 

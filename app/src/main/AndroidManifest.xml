@@ -9,14 +9,27 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
-        Pleos SDK 퍼미션은 아직 선언하지 않았다(SDK 미연동). 연동 시 Pleos App Market 과 사전 협의·승인된 범위만 선언한다.
-        예) pleos.car.permission.CAR_LIGHTS (TurnSignal), CAR_DRIVE (Brake), CAR_SAFETY (Safety),
-            pleos.car.permission.STT_SERVICE, TTS 권한. docs/pleos-sdk-status.md 참고.
+        Pleos Vehicle SDK 퍼미션. Pleos App Market 과 사전 협의해 승인된 범위만 배포할 수 있다(미승인, docs/policy-review.md).
+        CAR_LIGHTS: TurnSignal(방향지시등) / CAR_DRIVE: Brake(브레이크 페달)
+        CAR_SAFETY + PRIVATE_CAR_SAFETY: Safety 경고등. getTelltalesInfo 는 CAR_SAFETY,
+        checkTelltalesCapabilities·registerTelltales 는 PRIVATE_CAR_SAFETY 를 요구한다(SDK 2.3.2 @RequiresPermission).
     -->
+    <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
+    <uses-permission android:name="pleos.car.permission.PRIVATE_CAR_SAFETY" />
+
+    <!-- AAOS CarPropertyManager. CAR_SPEED 는 런타임 권한이라 car 모드에서 MainActivity 가 요청한다. -->
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+
+    <!-- Pleos SpeechToText / TextToSpeech SDK (voiceSource=pleos). -->
+    <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
 
     <!--
-        android:appCategory="audio": Pleos 문서 기준 Music/Audio 로 선언. 단, Music/Audio 심사는 MediaBrowserService·
-        MediaSession·스티어링 휠 키 지원을 요구하며 이 프로토타입에는 없다. 카테고리 적합성은 docs/policy-review.md 참고.
+        android:appCategory="audio": Pleos 문서 기준 Music/Audio 로 선언. Music/Audio 심사가 요구하는 MediaBrowserService·
+        MediaSession·스티어링 휠 키는 feature/media/ 에 있다. 카테고리 적합성(마이크 대화 포함)은 docs/policy-review.md 참고.
     -->
     <application
         android:name=".app.DriveLingoApplication"
@@ -45,5 +58,14 @@
             -->
             <meta-data android:name="distractionOptimized" android:value="true" />
         </activity>
+
+        <!-- 차량 미디어 화면(Media Center)이 붙는 MediaBrowserService. 수업을 "오디오 레슨"으로 노출한다. -->
+        <service
+            android:name=".feature.media.LessonMediaService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>
